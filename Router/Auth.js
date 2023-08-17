@@ -139,11 +139,11 @@ router.get('/placeDetails/:name', async (req, res) => {
 });
 
 const packageSchema = require("../Models/packageSchema");
-const Package = mongoose.model("Package", packageSchema);
+const Package = mongoose.model("Package", packageSchema);
 
 router.post('/addPackage', async (req, res) => {
   try {
-    const { package_name, package_overview, package_days, package_price, place} = req.body;
+    const { package_name, package_overview, package_days, package_price, place } = req.body;
 
     // Find the selected places by their IDs
     const selectedPlaces = await Place.find({ place_name: { $in: place } });
@@ -170,7 +170,7 @@ const Booking = mongoose.model("Booking", bookingSchema);
 
 router.post('/book', async (req, res) => {
   try {
-    const { book_date, book_adult, book_child, book_cost, book_user, book_pack} = req.body;
+    const { book_date, book_adult, book_child, book_cost, book_user, book_pack } = req.body;
 
     // Find the selected places by their IDs
     const selectedUser = await User.find({ username: book_user });
@@ -190,7 +190,52 @@ router.post('/book', async (req, res) => {
 
     res.status(201).json(newBook);
   } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.post('/updateUser', async (req, res) => {
+  const { username, newUsername, newPassword, newFirstName, newLastName, newEmail, newMobileNumber } = req.body;
+  console.log(username);
+
+  if (newUsername) {
+    const existingUserNew = await User.findOne({ username: newUsername });
+
+    if (existingUserNew) {
+      return res.status(400).json({ error: "User with the same email or username already exists" });
+    }
+  }
+
+  const existingUser = await User.findOne({ username });
+
+  
+  if (newUsername) {
+    existingUser.username = newUsername;
+  }
+  if (newFirstName) {
+    existingUser.firstname = newFirstName;
+    console.log("HElo");
+  }
+  if (newLastName) {
+    existingUser.lastname = newLastName;
+  }
+  if (newEmail) {
+    existingUser.email = newEmail;
+  }
+  if (newMobileNumber) {
+    existingUser.mobilenumber = newMobileNumber;
+  }
+  
+  if (newPassword) {
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    existingUser.password = hashedPassword;
+  }
+  existingUser.save().then((result) => {
+    console.log("User saved");
+  }).catch((err) => {
+    console.log("failed");  
+  })
+  return res.send(existingUser);
+  
 });
 module.exports = router;
