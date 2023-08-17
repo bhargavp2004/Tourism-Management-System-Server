@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= place.place_name %> Details</title>
+</head>
+<body>
+  <h1><%= place.place_name %> Details</h1>
+  <div>
+    <img src="data:<%= place.image.contentType %>;base64,<%= place.image.data.toString('base64') %>" alt="<%= place.place_name %> Image">
+  </div>
+  <p><strong>Description:</strong> <%= place.place_desc %></p>
+  <!-- You can include more details here -->
+</body>
+</html>
