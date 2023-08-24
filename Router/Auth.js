@@ -9,17 +9,26 @@ const multer = require('multer');
 const storage = multer.memoryStorage(); // Store files in memory as buffers
 const upload = multer({ storage: storage, limits: { fileSize: 1024 * 1024 * 10 } });  //Configuring file size which can be uploaded
 const Image = require('../Models/imageSchema');
+const cors = require('cors');
+
+
+//************Registeration************* */
+
 
 router.post('/register', async (req, res) => {
+
   const { firstname, lastname, email, username, password, mobilenumber } = req.body;
 
+  console.log(firstname);
+  console.log(lastname);
   // Check if a user with the same email or username already exists
   const existingUser = await User.findOne({ $or: [{ email }, { username }] });
 
   const hashedPassword = await bcrypt.hash(password, saltRounds);
 
   if (existingUser) {
-    return res.status(400).json({ error: "User with the same email or username already exists" });
+    console.log(existingUser);
+    return res.status(500).json({ exist : true});
   }
 
   // If user doesn't exist, create a new user and save
@@ -34,36 +43,39 @@ router.post('/register', async (req, res) => {
 
   try {
     const savedUser = await newUser.save();
-    console.log("Registration Successful!");
-    return res.status(201).json({ msg: "Registration Successful" });
+    return res.status(201).json({msg: "Registration Successful" });
   } catch (error) {
-    console.log("Registration Failed:", error);
-    return res.status(500).json({ error: "Registration Failed" });
+    return res.status(500).json({error: "Registration Failed" });
   }
 });
 
+
+
+//***********Login************* */
+
+
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
+
+  console.log(username);
+  console.log(password);
 
   try {
     // Check if a user with the provided username exists
     const user = await User.findOne({ username });
 
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(400).json({ error: "Incorrect username or password" });
     }
 
     const passwordMatch = await bcrypt.compare(password, user.password);
     // Validate the password
     if (!passwordMatch) {
-      return res.status(401).json({ error: "Incorrect password" });
+      return res.status(400).json({ error: "Incorrect username or password" });
     }
-
-    console.log("Login Successful!");
-    return res.status(200).json({ msg: "Login Successful" });
+    return res.status(200).json({ statusCode : 200, msg : "Login Successful" });
   } catch (error) {
-    console.log("Login Failed:", error);
-    return res.status(500).json({ error: "Login Failed" });
+    return res.json({ statusCode : 500, error: "Login Failed" });
   }
 });
 
@@ -80,6 +92,9 @@ router.post('/upload', upload.single('image'), async (req, res) => {
     res.status(500).send('Error uploading image');
   }
 });
+
+
+//**********Add Place********** */
 
 const placeSchema = require('../Models/placeSchema');
 const Place = mongoose.model('Place', placeSchema);
@@ -102,6 +117,10 @@ router.post('/addPlace', upload.single('image'), async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
+
+
+//********* */
+
 
 router.get('/fetchImage/:name', async (req, res) => {
   try {
@@ -165,6 +184,8 @@ router.post('/addPackage', async (req, res) => {
   }
 });
 
+
+//***********Book Tour Package************* */
 const bookingSchema = require("../Models/bookingSchema");
 const Booking = mongoose.model("Booking", bookingSchema);
 
@@ -194,6 +215,9 @@ router.post('/book', async (req, res) => {
   }
 });
 
+
+//*********Update User************** */
+
 router.post('/updateUser', async (req, res) => {
   const { username, newUsername, newPassword, newFirstName, newLastName, newEmail, newMobileNumber } = req.body;
   console.log(username);
@@ -214,7 +238,6 @@ router.post('/updateUser', async (req, res) => {
   }
   if (newFirstName) {
     existingUser.firstname = newFirstName;
-    console.log("HElo");
   }
   if (newLastName) {
     existingUser.lastname = newLastName;
@@ -236,6 +259,7 @@ router.post('/updateUser', async (req, res) => {
     console.log("failed");  
   })
   return res.send(existingUser);
-  
 });
+
+
 module.exports = router;

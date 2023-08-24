@@ -4,7 +4,8 @@ const url = `mongodb+srv://bhargavp2004:7094692828bhargav@tourismmanagement.vapy
 const express = require('express');
 const app = express();
 const portnumber = 5000;
-
+const cors = require('cors');
+app.use(cors());
 app.use(express.json());
 app.use(require('./Router/Auth'));
 const bodyParser = require('body-parser');
