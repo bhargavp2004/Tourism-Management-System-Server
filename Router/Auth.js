@@ -28,7 +28,7 @@ router.post('/register', async (req, res) => {
 
   if (existingUser) {
     console.log(existingUser);
-    return res.status(500).json({ exist : true});
+    return res.status(500).json({ exist: true });
   }
 
   // If user doesn't exist, create a new user and save
@@ -43,9 +43,9 @@ router.post('/register', async (req, res) => {
 
   try {
     const savedUser = await newUser.save();
-    return res.status(201).json({msg: "Registration Successful" });
+    return res.status(201).json({ msg: "Registration Successful" });
   } catch (error) {
-    return res.status(500).json({error: "Registration Failed" });
+    return res.status(500).json({ error: "Registration Failed" });
   }
 });
 
@@ -73,11 +73,13 @@ router.post('/login', async (req, res) => {
     if (!passwordMatch) {
       return res.status(400).json({ error: "Incorrect username or password" });
     }
-    return res.status(200).json({ statusCode : 200, msg : "Login Successful" });
+    return res.status(200).json({ statusCode: 200, msg: "Login Successful" });
   } catch (error) {
-    return res.json({ statusCode : 500, error: "Login Failed" });
+    return res.json({ statusCode: 500, error: "Login Failed" });
   }
 });
+
+
 
 router.post('/upload', upload.single('image'), async (req, res) => {
   console.log(req.body.title);
@@ -141,6 +143,8 @@ router.get('/fetchImage/:name', async (req, res) => {
   }
 });
 
+
+
 router.get('/placeDetails/:name', async (req, res) => {
   try {
     const placeName = req.params.name;
@@ -159,6 +163,9 @@ router.get('/placeDetails/:name', async (req, res) => {
 
 const packageSchema = require("../Models/packageSchema");
 const Package = mongoose.model("Package", packageSchema);
+
+
+
 
 router.post('/addPackage', async (req, res) => {
   try {
@@ -222,44 +229,217 @@ router.post('/updateUser', async (req, res) => {
   const { username, newUsername, newPassword, newFirstName, newLastName, newEmail, newMobileNumber } = req.body;
   console.log(username);
 
-  if (newUsername) {
-    const existingUserNew = await User.findOne({ username: newUsername });
-
-    if (existingUserNew) {
-      return res.status(400).json({ error: "User with the same email or username already exists" });
-    }
-  }
-
   const existingUser = await User.findOne({ username });
 
-  
-  if (newUsername) {
-    existingUser.username = newUsername;
+  if (existingUser) {
+    if (newUsername != null) {
+      const usernameExist = await User.findOne({ username: newUsername });
+
+      if (usernameExist) {
+        return res.status(422).json({ error: "User with same username already exists. Please opt for another username" });
+      }
+
+
+    }
+
+    if (newEmail) {
+      const emailExist = await User.findOne({ email: newEmail });
+
+      if (emailExist) {
+        return res.status(422).json({ error: "User with same email already exists. Please provide another email address" });
+      }
+      existingUser.email = newEmail;
+    }
+    if (newFirstName) {
+      existingUser.firstname = newFirstName;
+    }
+    if (newLastName) {
+      existingUser.lastname = newLastName;
+    }
+    if (newEmail) {
+      existingUser.email = newEmail;
+    }
+    if (newMobileNumber) {
+      existingUser.mobilenumber = newMobileNumber;
+    }
+
+    if (newPassword) {
+      const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+      existingUser.password = hashedPassword;
+    }
+
   }
-  if (newFirstName) {
-    existingUser.firstname = newFirstName;
-  }
-  if (newLastName) {
-    existingUser.lastname = newLastName;
-  }
-  if (newEmail) {
-    existingUser.email = newEmail;
-  }
-  if (newMobileNumber) {
-    existingUser.mobilenumber = newMobileNumber;
-  }
-  
-  if (newPassword) {
-    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
-    existingUser.password = hashedPassword;
-  }
+
   existingUser.save().then((result) => {
     console.log("User saved");
   }).catch((err) => {
-    console.log("failed");  
+    console.log("failed");
   })
   return res.send(existingUser);
 });
+
+
+
+router.post('/updateAdmin', async (req, res) => {
+  const { username, newUsername, newPassword, newFirstName, newLastName, newEmail, newMobileNumber } = req.body;
+
+
+  if (newUsername) {
+    const existingAdminNew = await Admin.findOne({ username: newUsername });
+
+    if (existingAdminNew) {
+      return res.status(400).json({ error: "Admin with the same email or username already exists" });
+    }
+  }
+
+  const existingAdmin = await User.findOne({ username });
+
+
+  if (newUsername) {
+    existingAdmin.username = newUsername;
+  }
+  if (newFirstName) {
+    existingAdmin.firstname = newFirstName;
+  }
+  if (newLastName) {
+    existingAdmin.lastname = newLastName;
+  }
+  if (newEmail) {
+    existingAdmin.email = newEmail;
+  }
+  if (newMobileNumber) {
+    existingAdmin.mobilenumber = newMobileNumber;
+  }
+
+  if (newPassword) {
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    existingAdmin.password = hashedPassword;
+  }
+  existingAdmin.save().then((result) => {
+    console.log("Admin saved");
+  }).catch((err) => {
+    console.log("failed");
+  })
+  return res.send(existingAdmin);
+});
+
+router.post('/updatePackage', async (req, res) => {
+  const { package_name, new_name, package_overview, package_days, package_price, place } = req.body;
+
+
+  if (new_name) {
+    const existingPackageNew = await Package.findOne({ package_name: new_name });
+
+    if (existingPackageNew) {
+      return res.status(400).json({ error: "Package with the same name exists" });
+    }
+  }
+
+  const existingPackage = await Package.findOne({ package_name });
+
+
+  if (new_name) {
+    existingPackage.package_name = new_name;
+  }
+  if (package_overview) {
+    existingPackage.package_overview = package_overview;
+  }
+  if (package_days) {
+    existingPackage.package_days = package_days;
+  }
+  if (package_price) {
+    existingPackage.package_price = package_price;
+  }
+  if (place) {
+    const selectedPlaces = await Place.find({ place_name: { $in: place } });
+    existingPackage.package_place = selectedPlaces.map(place => place._id);
+  }
+
+  existingPackage.save().then((result) => {
+    console.log("Package saved");
+  }).catch((err) => {
+    console.log("failed");
+  })
+  return res.send(existingPackage);
+});
+
+
+router.post('/updatePlace', async (req, res) => {
+  const { place_name, place_newname, place_desc } = req.body;
+
+
+
+  if (place_newname) {
+    const existingPlaceNew = await Place.findOne({ place_name: place_newname });
+
+    if (existingPlaceNew) {
+      return res.status(400).json({ error: "Place with the same name exists" });
+    }
+  }
+
+  const existingPlace = await Place.findOne({ place_name });
+
+
+  if (place_newname) {
+    existingPlace.place_name = place_newname;
+  }
+  if (place_desc) {
+    existingPlace.place_desc = place_desc;
+  }
+
+  existingPlace.save().then((result) => {
+    console.log("Place saved");
+  }).catch((err) => {
+    console.log("failed");
+  })
+  return res.send(existingPlace);
+});
+
+
+router.post('/deleteUser', async (req, res) => {
+  const { username } = req.body;
+
+  try {
+    const result = await User.deleteOne({ username });
+    console.log(result.deletedCount, 'document(s) deleted');
+  } catch (error) {
+    console.error('Error deleting document:', error);
+  }
+});
+
+router.post('/deletePlace', async (req, res) => {
+  const { name } = req.body;
+  console.log(name);
+  try {
+    const result = await Place.deleteOne({ place_name: name });
+    console.log(result.deletedCount, 'document(s) deleted');
+  } catch (error) {
+    console.error('Error deleting document:', error);
+  }
+});
+
+router.post('/deletePackage', async (req, res) => {
+  const { name } = req.body;
+  console.log(name);
+  try {
+    const result = await Package.deleteOne({ package_name: name });
+    console.log(result.deletedCount, 'document(s) deleted');
+  } catch (error) {
+    console.error('Error deleting document:', error);
+  }
+});
+
+router.post('/deleteBooking', async (req, res) => {
+  const { user } = req.body;
+  console.log(user);
+  try {
+    const result = await Booking.deleteOne({ _id: user });
+    console.log(result.deletedCount, 'document(s) deleted');
+  } catch (error) {
+    console.error('Error deleting document:', error);
+  }
+});
+
 
 
 module.exports = router;
