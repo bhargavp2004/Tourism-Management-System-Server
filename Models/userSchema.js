@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const schema = mongoose.Schema;
 
+
 const userSchema = new schema({
    firstname : String,
    lastname : String,
@@ -9,5 +10,6 @@ const userSchema = new schema({
    password : String,
    mobilenumber : String
 });
+
 
 module.exports = userSchema;

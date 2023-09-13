@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const userSchema = require("./Models/userSchema");
-const url = `mongodb+srv://bhargavp2004:7094692828bhargav@tourismmanagement.vapyc9c.mongodb.net/mydb?retryWrites=true&w=majority`;
+const url = `mongodb+srv://mongodbrahul:iamrahul90586@cluster0.hvew3zs.mongodb.net/?retryWrites=true&w=majority`;
 const express = require('express');
 const app = express();
 const portnumber = 5000;

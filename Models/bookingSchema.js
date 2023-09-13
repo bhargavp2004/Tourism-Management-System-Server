@@ -17,8 +17,9 @@ const bookingSchema = new schema({
    book_pack:{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Package',
-   } 
+   }
+   
 });
 
 
-module.exports = bookingSchema;
+module.exports = bookingSchema;

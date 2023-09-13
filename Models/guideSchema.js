@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const schema = mongoose.Schema;
 
 
-const adminSchema = new schema({
+const guideSchema = new schema({
    firstname : String,
    lastname : String,
    email : String,
@@ -12,4 +12,4 @@ const adminSchema = new schema({
 });
 
 
-module.exports = adminSchema;
+module.exports = guideSchema;

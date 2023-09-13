@@ -5,6 +5,6 @@ const imageSchema = new mongoose.Schema({
   image: Buffer, // Store the image data as a Buffer
 });
 
-const Image = mongoose.model('Image', imageSchema);
 
-module.exports = Image;
+
+module.exports = imageSchema;
