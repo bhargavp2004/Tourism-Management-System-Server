@@ -337,7 +337,10 @@ router.post('/addPackage', async (req, res) => {
   }
 });
 
-
+router.get('/packages', async (req, res) => {
+  const package = await Package.find({});
+  res.json(package);
+});
 
 router.post('/updatePackage', async (req, res) => {
   const { package_name,new_name,package_overview,package_days,package_price,place, guide} = req.body;
@@ -605,6 +608,25 @@ router.post('/addGuide', async (req, res) => {
     return res.status(500).json({ error: "Registration Failed" });
   }
 });
+
+router.get('/guideUsernames', async (req, res) => {
+  try {
+    // Find all guides and project only the 'username' field
+    const guides = await Guide.find({}, 'username');
+
+    // Create an object with guide IDs as keys and usernames as values
+    const guideUsernames = {};
+    guides.forEach((guide) => {
+      guideUsernames[guide._id.toString()] = guide.username;
+    });
+
+    res.json(guideUsernames);
+  } catch (error) {
+    console.error("Error fetching guide usernames:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 
 router.get('/guides', async (req, res) => {
   const guides = await Guide.find({});
