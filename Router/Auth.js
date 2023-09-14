@@ -190,26 +190,28 @@ router.post('/upload', upload.single('image'), async (req, res) => {
 
 
 
-router.post('/addPlace', upload.single('image'), async (req, res) => {
-
+router.post("/addPlace", upload.single("image"), async (req, res) => {
   try {
     const { place_name, place_desc, title } = req.body;
+
+    if (!place_name || !place_desc || !title || !req.file) {
+      return res.status(400).json({ error: "Fill all the fields properly" });
+    }
+
     const image = {
       data: req.file.buffer,
-      contentType: req.file.mimetype
+      contentType: req.file.mimetype,
     };
 
     const newPlace = new Place({ place_name, place_desc, title, image });
-    console.log(newPlace.place_name);
     await newPlace.save();
 
     res.status(201).json(newPlace);
   } catch (error) {
-    res.status(400).json({ error: error.message });
-    console.log(error.message);
+    console.error("Error:", error.message);
+    res.status(500).json({ error: "An error occurred while processing your request." });
   }
 });
-
 
 
 router.get('/fetchImage/:name', async (req, res) => {
@@ -250,7 +252,7 @@ router.get('/placeDetails/:name', async (req, res) => {
 });
 
 router.get('/places', async (req, res) => {
-  const places = await Place.find({});
+  const places = await Place.find({}, {place_name});
   
   res.json(places);
 });
@@ -461,7 +463,7 @@ router.post('/deleteComment', async (req, res) => {
 
 
 
-// BOOKING PACKAGAE  //
+// BOOKING PACKAGE  //
 
 
 
