@@ -87,9 +87,11 @@ router.post('/login', async (req, res) => {
 
   try {
     // Check if a user with the provided username exists
-    const user = await User.findOne({ username });
-    const admin = await Admin.findOne({username });
-
+    const user = await User.findOne({ username: username });
+    const admin = await Admin.findOne({username :username });
+    console.log(username);
+    console.log(user);
+    console.log(admin);
     
 
     if (!user && !admin) {
@@ -290,12 +292,12 @@ router.post("/addPlace", upload.single("image"), async (req, res) => {
 });
 
 
-router.get('/fetchImage/:name', async (req, res) => {
+router.get('/fetchImage/:id', async (req, res) => {
   try {
-    const placeName = req.params.name;
-    console.log(placeName);
+    const id = req.params.id;
+    console.log(id);
 
-    const place = await Place.findOne({ place_name: placeName });
+    const place = await Place.findOne({ _id: id });
 
     if (!place || !place.image) {
       return res.status(404).send('Place or Image not found');
@@ -333,52 +335,58 @@ router.get('/places', async (req, res) => {
   res.json(places);
 });
 
+router.get('/places/:id', async (req, res) => {
+  const id = req.params.id;
+  const place = await Place.findOne({_id : id});
+  res.json(place);
+});
 
 
+router.put('/updatePlace/:id', upload.single('image'), async (req, res) => {
+  const { place_name, place_desc } = req.body;
+  const id = req.params.id;
 
-router.post('/updatePlace', async (req, res) => {
-  const { place_name, place_newname, place_desc} = req.body;
+  try {
+    const existingPlace = await Place.findByIdAndUpdate(id, {
+      place_name,
+      place_desc,
+      image: {
+        data: req.file.buffer, // Updated image data
+        contentType: req.file.mimetype, // Updated content type
+      },
+    }, { new: true });
 
-  if (place_newname) {
-    const existingPlaceNew = await Place.findOne({ place_name: place_newname });
-
-    if (existingPlaceNew) {
-      return res.status(400).json({ error: "Place with the same name exists" });
+    if (!existingPlace) {
+      return res.status(404).json({ message: 'Place not found' });
     }
-  }
 
-  const existingPlace = await Place.findOne({ place_name });
-
-  
-  if (place_newname) {
-    existingPlace.place_name = place_newname;
+    return res.json(existingPlace);
+  } catch (error) {
+    console.error('Error updating place:', error);
+    return res.status(500).json({ message: 'Failed to update place' });
   }
-  if (place_desc) {
-    existingPlace.place_desc = place_desc;
-  }
-
-  existingPlace.save().then((result) => {
-    console.log("Place saved");
-  }).catch((err) => {
-    console.log("failed");  
-  })
-  return res.send(existingPlace);
 });
 
 
 
-router.post('/deletePlace', async (req, res) => {
-  const {name} = req.body;
-  console.log(name);
+router.post("/deletePlace/:id", async (req, res) => {
+  const id = req.params.id;
+
   try {
-    const result = await Place.deleteOne({ place_name : name });
-    await Package.updateMany(
-      { package_place: name },
-      { $unset: { package_place: 1 } }
-    );
-    console.log(result.deletedCount, 'document(s) deleted');
+    // Check if the guide exists
+    const place = await Place.findById(id);
+
+    if (!place) {
+      return res.status(404).json({ message: "Place not found" });
+    }
+
+    // Perform any additional checks here before deleting (e.g., if the guide is associated with any data)
+
+    // Delete the guide
+    await Place.deleteOne({ _id: id });
   } catch (error) {
-    console.error('Error deleting document:', error);
+    console.error("Error deleting Place:", error);
+    res.status(500).json({ message: "An error occurred while deleting the Place" });
   }
 });
 
@@ -455,24 +463,25 @@ router.put('/updatePackage/:id', async (req, res) => {
 
 
 
-router.post('/deletePackage', async (req, res) => {
-  const {name} = req.body;
-  console.log(name);
+router.post('/deletePackage/:id', async (req, res) => {
+  const id = req.params.id;
+  console.log(id);
   try {
-    const ask = await Booking.find({book_pack : pack_id});
-    if(ask == 0){
-      const result = await Package.deleteOne({ package_name : name });
-      console.log(result.deletedCount, 'document(s) deleted');
-    }
-    else{
-      if(ask > 0){
-        throw "The Package You are Trying to delete is booked by someone";
+    const ask = await Booking.findOne({ book_pack: id });
+    if (ask == null) {
+      const result = await Package.deleteOne({ _id: id });
+      return res.status(200).json({ message: 'Package deleted' });
+    } else {
+      if (ask !== null) {
+        return res.status(400).json({ message: 'Package is booked by someone' });
       }
     }
   } catch (error) {
     console.error('Error deleting document:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 
 
 
@@ -702,75 +711,84 @@ router.get('/guideUsernames', async (req, res) => {
   }
 });
 
+router.get('/guide/:id', async (req, res) => {
+  const id = req.params.id;
+  console.log(id);
+  const guide = await Guide.findOne({_id : id});
+  res.json(guide);
+});
 
 router.get('/guides', async (req, res) => {
   const guides = await Guide.find({});
-  console.log(guides);
   res.json(guides);
 });
 
 
-router.post('/updateGuide', async (req, res) => {
-  const { username, newUsername, newPassword, newFirstName, newLastName, newEmail, newMobileNumber } = req.body;
+router.put('/updateGuide/:id', async (req, res) => {
+  const { firstname, lastname, email, username, mobilenumber} = req.body;
+  const id = req.params.id;
 
-
-  if (newUsername) {
-    const existingGuideNew = await Guide.findOne({ username: newUsername });
-
-    if (existingGuideNew) {
-      return res.status(400).json({ error: "Admin with the same email or username already exists" });
-    }
-  }
-
-  const existingGuide = await User.findOne({ username });
-
-  
-  if (newUsername) {
-    existingGuide.username = newUsername;
-  }
-  if (newFirstName) {
-    existingGuide.firstname = newFirstName;
-  }
-  if (newLastName) {
-    existingGuide.lastname = newLastName;
-  }
-  if (newEmail) {
-    existingGuide.email = newEmail;
-  }
-  if (newMobileNumber) {
-    existingGuide.mobilenumber = newMobileNumber;
-  }
-  
-  if (newPassword) {
-    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
-    existingGuide.password = hashedPassword;
-  }
-  existingGuide.save().then((result) => {
-    console.log("Guide saved");
-  }).catch((err) => {
-    console.log("failed");  
-  })
-  return res.send(existingGuide);
-});
-
-
-
-router.post('/deleteGuide', async (req, res) => {
-  const {guide} = req.body;
-  console.log(guide);
   try {
-    
-    const result = await Guide.deleteOne({_id :  guide});
+    const existingGuide = await Guide.findByIdAndUpdate(id, {
+      firstname,
+      lastname,
+      email,
+      username,
+      mobilenumber,
+    }, { new: true });
 
-    await Package.updateMany(
-      { package_guide: guide },
-      { $unset: { package_guide: 1 } }
-    );
-    console.log(result.deletedCount, 'document(s) deleted');
+    if (!existingGuide) {
+      return res.status(404).json({ message: 'Guide not found' });
+    }
+
+    return res.json(existingGuide); // Send the updated package data in response
   } catch (error) {
-    console.error('Error deleting document:', error);
+    console.error('Error updating Guide:', error);
+    return res.status(500).json({ message: 'Failed to update Guide' });
   }
 });
+
+
+
+router.post("/deleteGuide/:id", async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    // Check if the guide exists
+    const guide = await Guide.findById(id);
+
+    if (!guide) {
+      return res.status(404).json({ message: "Guide not found" });
+    }
+
+    // Perform any additional checks here before deleting (e.g., if the guide is associated with any data)
+
+    // Delete the guide
+    await Guide.deleteOne({ _id: id });
+  } catch (error) {
+    console.error("Error deleting Guide:", error);
+    res.status(500).json({ message: "An error occurred while deleting the Guide" });
+  }
+});
+
+// router.post('/deletePackage/:id', async (req, res) => {
+//   const id = req.params.id;
+//   console.log(id);
+//   try {
+//     const ask = await Booking.findOne({ book_pack: id });
+//     if (ask == null) {
+//       const result = await Package.deleteOne({ _id: id });
+//       return res.status(200).json({ message: 'Package deleted' });
+//     } else {
+//       if (ask !== null) {
+//         return res.status(400).json({ message: 'Package is booked by someone' });
+//       }
+//     }
+//   } catch (error) {
+//     console.error('Error deleting document:', error);
+//     res.status(500).json({ message: 'Internal server error' });
+//   }
+// });
 
 
 
