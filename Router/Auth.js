@@ -252,7 +252,7 @@ router.get('/placeDetails/:name', async (req, res) => {
 });
 
 router.get('/places', async (req, res) => {
-  const places = await Place.find({}, {place_name});
+  const places = await Place.find({});
   
   res.json(places);
 });
@@ -344,48 +344,37 @@ router.get('/packages', async (req, res) => {
   res.json(package);
 });
 
-router.post('/updatePackage', async (req, res) => {
-  const { package_name,new_name,package_overview,package_days,package_price,place, guide} = req.body;
-  
+router.get('/packages/:id', async (req, res) => {
+  const id = req.params.id;
+  const package = await Package.findOne({_id : id});
+  res.json(package);
+});
 
-  if (new_name) {
-    const existingPackageNew = await Package.findOne({ package_name: new_name });
 
-    if (existingPackageNew) {
-      return res.status(400).json({ error: "Package with the same name exists" });
+
+router.put('/updatePackage/:id', async (req, res) => {
+  const { package_name, package_overview, package_days, package_price, package_place, package_guide } = req.body;
+  const id = req.params.id;
+
+  try {
+    const existingPackage = await Package.findByIdAndUpdate(id, {
+      package_name,
+      package_overview,
+      package_days,
+      package_price,
+      package_place,
+      package_guide,
+    }, { new: true });
+
+    if (!existingPackage) {
+      return res.status(404).json({ message: 'Package not found' });
     }
-  }
 
-  const existingPackage = await Package.findOne({ package_name });
-
-  
-  if (new_name) {
-    existingPackage.package_name = new_name;
+    return res.json(existingPackage); // Send the updated package data in response
+  } catch (error) {
+    console.error('Error updating package:', error);
+    return res.status(500).json({ message: 'Failed to update package' });
   }
-  if (package_overview) {
-    existingPackage.package_overview = package_overview;
-  }
-  if (package_days) {
-    existingPackage.package_days = package_days;
-  }
-  if (package_price) {
-    existingPackage.package_price = package_price;
-  }
-  if (place) {
-    const selectedPlaces = await Place.find({ place_name: { $in: place } });
-    existingPackage.package_place = selectedPlaces.map(place => place._id);
-  }
-
-  if (guide) {
-    existingPackage.guide = guide;
-  }
-  
-  existingPackage.save().then((result) => {
-    console.log("Package saved");
-  }).catch((err) => {
-    console.log("failed");  
-  })
-  return res.send(existingPackage);
 });
 
 
