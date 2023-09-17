@@ -21,6 +21,8 @@ const imageSchema = require("../Models/imageSchema");
 const Image = mongoose.model("Image", imageSchema);
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
+const jwt = require('jsonwebtoken');
+const secretKey = "THISISMYSECURITYKEYWHICHICANTGIVEYOU";
 
  // Store files in memory as buffers
 // const upload = multer({ storage: storage, limits: { fileSize: 1024 * 1024 * 10 } });  //Configuring file size which can be uploaded
@@ -30,26 +32,22 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 
-
-
-
 // USER //
-
-
-
 router.post('/register', async (req, res) => {
+  console.log("inside register");
   const { firstname, lastname, email, username, password, mobilenumber } = req.body;
-
+  console.log("after destructuring");
   // Check if a user with the same email or username already exists
   const existingUser = await User.findOne({ $or: [{ email }, { username }] });
-
+  console.log("after existing user");
   const hashedPassword = await bcrypt.hash(password, saltRounds);
-
+  console.log("after hashing");
   if (existingUser) {
     return res.status(400).json({ error: "User with the same email or username already exists" });
   }
 
   // If user doesn't exist, create a new user and save
+  console.log("Creating new user");
   const newUser = new User({
     firstname,
     lastname,
@@ -59,13 +57,26 @@ router.post('/register', async (req, res) => {
     mobilenumber
   });
 
+  console.log("Getting into try block");
   try {
-    const savedUser = await newUser.save();
+    console.log("Before");
+    await newUser.save();
+    const payload = {
+      user: {
+        id: newUser._id,
+        username: newUser.username,
+      },
+    };
+
+    // Sign the JWT token with the payload and secret key
+    const token = jwt.sign(payload, secretKey, { expiresIn: '1h' });
+// Send the token as a response
     console.log("Registration Successful!");
-    return res.status(201).json({ msg: "Registration Successful" });
+    res.cookie('token', token, { httpOnly: true });
+    return res.status(201).json({ msg: "Registration Successful", token});
   } catch (error) {
     console.log("Registration Failed:", error);
-    return res.status(500).json({ error: "Registration Failed" });
+    return res.status(401).json({ error: "Registration Failed" });
   }
 });
 
@@ -79,6 +90,8 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ username });
     const admin = await Admin.findOne({username });
 
+    
+
     if (!user && !admin) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -87,7 +100,16 @@ router.post('/login', async (req, res) => {
       if (!passwordMatch) {
         return res.status(401).json({ error: "Incorrect password" });
       }
-      return res.status(200).json({ msg: "Login Successful" });
+      const payload = {
+        user: {
+          id: user._id,
+          username: user.username,
+        },
+      };
+      const token = jwt.sign(payload, secretKey, { expiresIn: '1h' });
+      console.log(token);
+      res.cookie('token', token, { httpOnly: true });
+      return res.status(200).json({ msg: "Login Successful" , token});
     }
     else{
       console.log("Admin");
@@ -108,6 +130,36 @@ router.post('/login', async (req, res) => {
   }
 });
 
+function verifyTokenFromSessionOrCookie(req, res, next) {
+  const token = req.session?.token || req.cookies?.token;
+  console.log("Inside Verification Function");
+  console.log(token);
+  if (!token) {
+    return res.status(401).json({ error: 'Access denied. No token provided.' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, secretKey);
+    req.user = decoded.user;
+    next();
+  } catch (error) {
+    res.status(403).json({ error: 'Token is not valid' });
+  }
+}
+
+router.get('/checkLogin', verifyTokenFromSessionOrCookie, (req, res) =>{
+  return res.status(200).json({ message: 'You are Logged In' }); 
+})
+// Protected route (requires authentication)
+router.get('/about', verifyTokenFromSessionOrCookie, (req, res) => {
+  return res.status(200).json({ message: 'You are on the About Page' });
+});
+
+// Error handling middleware
+router.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
 
 
 router.post('/updateUser', async (req, res) => {
@@ -167,6 +219,30 @@ router.post('/deleteUser', async (req, res) => {
 });
 
 
+router.post('/bookPackage', async (req, res) => {
+  try {
+    const { package_name, package_overview, package_days, package_price, package_place, package_guide} = req.body;
+
+    // Find the selected places by their IDs
+    const selectedPlaces = await Place.find({ _id: { $in: package_place } });
+
+    // Create a new package with the selected places references
+    const newPackage = new Package({
+      package_name,
+      package_overview,
+      package_days,
+      package_price,
+      package_place: selectedPlaces.map(place => place._id),
+      package_guide   
+    });
+
+    await newPackage.save();
+
+    res.status(201).json(newPackage);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
 
 
 // PLACE //
@@ -483,6 +559,14 @@ router.post('/book', async (req, res) => {
   }
 });
 
+
+router.post('/bookSelectedPackage', async (req, res) => {
+  const package_name = req.body.package_name;
+  const pack = await Package.findOne({package_name : package_name});
+
+  console.log(pack);
+  return res.json({message : `Selected ${package_name}`});
+})
 
 
 router.post('/deleteBooking', async (req, res) => {
