@@ -70,10 +70,10 @@ router.post('/register', async (req, res) => {
 
     // Sign the JWT token with the payload and secret key
     const token = jwt.sign(payload, secretKey, { expiresIn: '1h' });
-// Send the token as a response
+    // Send the token as a response
     console.log("Registration Successful!");
     res.cookie('token', token, { httpOnly: true });
-    return res.status(201).json({ msg: "Registration Successful", token});
+    return res.status(200).json({ msg: "Registration Successful", token});
   } catch (error) {
     console.log("Registration Failed:", error);
     return res.status(401).json({ error: "Registration Failed" });
@@ -92,15 +92,14 @@ router.post('/login', async (req, res) => {
     console.log(username);
     console.log(user);
     console.log(admin);
-    
 
     if (!user && !admin) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(401).json({ error: "Incorrect Username or Password" });
     }
     else if(user){
       const passwordMatch = await bcrypt.compare(password, user.password);
       if (!passwordMatch) {
-        return res.status(401).json({ error: "Incorrect password" });
+        return res.status(401).json({ error: "Incorrect Username or Password" });
       }
       const payload = {
         user: {
@@ -117,18 +116,27 @@ router.post('/login', async (req, res) => {
       console.log("Admin");
       console.log(password);
       const passwordMatch = await Admin.findOne({password:password });
-      console.log(passwordMatch);
+     
       if (!passwordMatch) {
-        return res.status(401).json({ error: "Incorrect password" });
+        return res.status(401).json({ error: "Incorrect Username or Password" });
       }
-      return res.status(201).json({ msg: "Login Successful" });
+      const payload = {
+        admin: {
+          id: admin._id,
+          username: admin.username,
+        },
+      };
+      
+      const token = jwt.sign(payload, secretKey, { expiresIn: '1h' });
+      console.log(token);
+      res.cookie('token', token, { httpOnly: true });
+      console.log(passwordMatch);
+      return res.status(201).json({ msg: "Login Successful", token });
     }
-    
 
-    
   } catch (error) {
     console.log("Login Failed:", error);
-    return res.status(500).json({ error: "Login Failed" });
+    return res.status(401).json({ error: "Login Failed" });
   }
 });
 
@@ -148,14 +156,6 @@ function verifyTokenFromSessionOrCookie(req, res, next) {
     res.status(403).json({ error: 'Token is not valid' });
   }
 }
-
-router.get('/checkLogin', verifyTokenFromSessionOrCookie, (req, res) =>{
-  return res.status(200).json({ message: 'You are Logged In' }); 
-})
-// Protected route (requires authentication)
-router.get('/about', verifyTokenFromSessionOrCookie, (req, res) => {
-  return res.status(200).json({ message: 'You are on the About Page' });
-});
 
 // Error handling middleware
 router.use((err, req, res, next) => {
