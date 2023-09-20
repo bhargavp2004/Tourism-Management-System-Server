@@ -434,7 +434,26 @@ router.get('/packages/:id', async (req, res) => {
   res.json(package);
 });
 
+router.get('/getpalces/:id', async (req, res) => {
+  const packageId = req.params.id;
 
+  try {
+    const package = await Package.findById(packageId).populate('package_place');
+
+    if (!package) {
+      return res.status(404).json({ message: 'Package not found' });
+    }
+
+    // Extract associated places from the package document
+    const associatedPlaces = package.package_place;
+    
+
+    res.json(associatedPlaces);
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 router.put('/updatePackage/:id', async (req, res) => {
   const { package_name, package_overview, package_days, package_price, package_place, package_guide } = req.body;
