@@ -12,6 +12,7 @@ const packageSchema = new schema({
    package_overview: String,
    package_days : Number,
    package_price: Number,
+   package_capacity : Number,
    package_place : [{
       type: mongoose.Schema.Types.ObjectId,
         ref: 'Place',

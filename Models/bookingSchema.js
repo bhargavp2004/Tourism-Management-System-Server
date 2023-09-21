@@ -2,21 +2,22 @@ const mongoose = require('mongoose');
 const schema = mongoose.Schema;
 const userSchema = require('./userSchema');
 const User = mongoose.model('User', userSchema);
-const packageSchema = require('./packageSchema');
-const Package = mongoose.model('Package', packageSchema);
+const packageDateSchema = require('./packageDates');
+const PackageDateSchema = mongoose.model('PackageDateSchema', packageDateSchema);
 
 const bookingSchema = new schema({
    book_date: Date,
    book_adult: Number,
    book_child: Number,
    book_cost: Number,
+   current_no_of_bookings : Number,
    book_user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
    },
    book_pack:{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Package',
+    ref: 'PackageDateSchema',
    }
    
 });

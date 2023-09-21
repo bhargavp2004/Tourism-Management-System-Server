@@ -20,6 +20,8 @@ const Admin = mongoose.model("Admin", adminSchema);
 const imageSchema = require("../Models/imageSchema");
 const Image = mongoose.model("Image", imageSchema);
 const bcrypt = require('bcrypt');
+const packageDateSchema = require('../Models/packageDates');
+const PackageDates = mongoose.model("PackageDates", packageDateSchema);
 const saltRounds = 10;
 const jwt = require('jsonwebtoken');
 const secretKey = "THISISMYSECURITYKEYWHICHICANTGIVEYOU";
@@ -400,7 +402,7 @@ router.post("/deletePlace/:id", async (req, res) => {
 
 router.post('/addPackage', async (req, res) => {
   try {
-    const { package_name, package_overview, package_days, package_price, package_place, package_guide} = req.body;
+    const { package_name, package_overview, package_days, package_price, package_capacity, package_place, package_guide, start_date, end_date} = req.body;
 
     // Find the selected places by their IDs
     const selectedPlaces = await Place.find({ _id: { $in: package_place } });
@@ -411,11 +413,18 @@ router.post('/addPackage', async (req, res) => {
       package_overview,
       package_days,
       package_price,
+      package_capacity,
       package_place: selectedPlaces.map(place => place._id),
       package_guide   
     });
 
     await newPackage.save();
+    const pack_id = newPackage._id;
+    const pds = new PackageDates({
+      package_id : pack_id, start_date, end_date
+    });
+
+    await pds.save();
 
     res.status(201).json(newPackage);
   } catch (error) {
@@ -434,7 +443,7 @@ router.get('/packages/:id', async (req, res) => {
   res.json(package);
 });
 
-router.get('/getpalces/:id', async (req, res) => {
+router.get('/getplaces/:id', async (req, res) => {
   const packageId = req.params.id;
 
   try {
