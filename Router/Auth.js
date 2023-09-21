@@ -464,6 +464,22 @@ router.get('/getplaces/:id', async (req, res) => {
   }
 });
 
+router.get('/getDates/:id', async (req, res) => {
+  const id = req.params.id;
+  console.log(id);
+
+  try {
+    const dates = await PackageDates.find({ package_id: id });
+    console.log(dates);
+    console.log(dates.start_date);
+    res.status(200).json(dates);
+  } catch (error) {
+    console.error("Error fetching dates:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+
+})
+
 router.put('/updatePackage/:id', async (req, res) => {
   const { package_name, package_overview, package_days, package_price, package_place, package_guide } = req.body;
   const id = req.params.id;
