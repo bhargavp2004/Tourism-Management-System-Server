@@ -11,6 +11,7 @@ const packageDateSchema = new schema({
    },
    start_date : Date,
    end_date : Date,
+   rem_book : Number,
 });
 
 

@@ -418,7 +418,7 @@ router.post('/addPackage', async (req, res) => {
     await newPackage.save();
     const pack_id = newPackage._id;
     const pds = new PackageDates({
-      package_id : pack_id, start_date, end_date
+      package_id : pack_id, start_date, end_date, rem_book : package_capacity
     });
 
     await pds.save();
@@ -467,15 +467,31 @@ router.get('/getDates/:id', async (req, res) => {
 
   try {
     const dates = await PackageDates.find({ package_id: id });
-    console.log(dates);
-    console.log(dates.start_date);
     res.status(200).json(dates);
   } catch (error) {
     console.error("Error fetching dates:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 
-})
+});
+
+router.get('/getPackageById/:id', async (req, res) => {
+  const id = req.params.id;
+  try {
+    const package = await PackageDates.findOne({ _id: id }).exec();
+    if (!package) {
+      return res.status(404).json({ error: 'Package not found' });
+    }
+    res.json(package);
+  } catch (error) {
+    console.error('Error fetching package:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+
+
 
 router.put('/updatePackage/:id', async (req, res) => {
   const { package_name, package_overview, package_days, package_price, package_place, package_guide } = req.body;
@@ -502,7 +518,23 @@ router.put('/updatePackage/:id', async (req, res) => {
   }
 });
 
+router.put('/updatepackdate/:id', async(req, res) => {
+  const newobj = req.body;
+  const id = req.params.id;
 
+  try {
+    const existingPackage = await PackageDates.findByIdAndUpdate(id, newobj, { new: true });
+    console.log(existingPackage);
+    if (!existingPackage) {
+      return res.status(404).json({ message: 'Package not found' });
+    }
+
+    return res.json(existingPackage); // Send the updated package data in response
+  } catch (error) {
+    console.error('Error updating package:', error);
+    return res.status(500).json({ message: 'Failed to update package' });
+  }
+});
 
 router.post('/deletePackage/:id', async (req, res) => {
   const id = req.params.id;
