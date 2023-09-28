@@ -48,8 +48,6 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: "User with the same email or username already exists" });
   }
 
-  // If user doesn't exist, create a new user and save
-  console.log("Creating new user");
   const newUser = new User({
     firstname,
     lastname,
@@ -59,7 +57,6 @@ router.post('/register', async (req, res) => {
     mobilenumber
   });
 
-  console.log("Getting into try block");
   try {
     console.log("Before");
     await newUser.save();
@@ -586,29 +583,22 @@ router.post('/deleteComment', async (req, res) => {
 
 
 
-router.post('/book', async (req, res) => {
+router.post('/bookings', async (req, res) => {
   try {
-    const { book_date, book_adult, book_child, book_cost, book_user, book_pack} = req.body;
+    // Extract the booking data from the request body
+    const bookingData = req.body;
 
-    // Find the selected places by their IDs
-    const selectedUser = await User.find({ username: book_user });
-    const selectedPack = await Package.find({ package_name: book_pack });
+    // Create a new booking instance
+    const newBooking = new Booking(bookingData);
 
-    // Create a new package with the selected places references
-    const newBook = new Booking({
-      book_date,
-      book_adult,
-      book_child,
-      book_cost,
-      book_user: selectedUser.map(book_user => book_user._id),
-      book_pack: selectedPack.map(book_pack => book_pack._id)
-    });
+    // Save the new booking to the database
+    const savedBooking = await newBooking.save();
 
-    await newBook.save();
-
-    res.status(201).json(newBook);
+    // Respond with the saved booking data
+    res.status(201).json(savedBooking);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('Error creating booking:', error);
+    res.status(500).json({ error: 'An error occurred while creating the booking' });
   }
 });
 

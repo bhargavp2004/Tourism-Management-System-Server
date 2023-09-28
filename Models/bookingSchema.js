@@ -12,7 +12,6 @@ const bookingSchema = new schema({
    book_adult: Number,
    book_child: Number,
    book_cost: Number,
-   current_no_of_bookings : Number,
    book_user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
