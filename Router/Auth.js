@@ -158,6 +158,14 @@ function verifyTokenFromSessionOrCookie(req, res, next) {
   }
 }
 
+router.post("/about", (req, res) => {
+  const {token} = req.body;
+  console.log(token);
+  const decoded = jwt.verify(token, secretKey);
+  
+  return res.status(200).json({user : username});
+})
+
 // Error handling middleware
 router.use((err, req, res, next) => {
   console.error("Error:", err);
