@@ -404,8 +404,7 @@ router.post("/addPackage", async (req, res) => {
       package_capacity,
       package_place,
       package_guide,
-      start_date,
-      end_date,
+      dates, // Array of dates with start_date and end_date
     } = req.body;
 
     // Find the selected places by their IDs
@@ -424,14 +423,17 @@ router.post("/addPackage", async (req, res) => {
 
     await newPackage.save();
     const pack_id = newPackage._id;
-    const pds = new PackageDates({
-      package_id: pack_id,
-      start_date,
-      end_date,
-      rem_book: package_capacity,
-    });
 
-    await pds.save();
+    // Create an array of PackageDates objects based on the input dates
+    const packageDates = dates.map((date) => ({
+      package_id: pack_id,
+      start_date: date.start_date,
+      end_date: date.end_date,
+      rem_book: package_capacity,
+    }));
+
+    // Insert the PackageDates objects into the database
+    await PackageDates.insertMany(packageDates);
 
     res.status(201).json(newPackage);
   } catch (error) {
@@ -472,7 +474,6 @@ router.get("/getplaces/:id", async (req, res) => {
 
 router.get("/getDates/:id", async (req, res) => {
   const id = req.params.id;
-  console.log(id);
 
   try {
     const dates = await PackageDates.find({ package_id: id });
@@ -480,6 +481,27 @@ router.get("/getDates/:id", async (req, res) => {
   } catch (error) {
     console.error("Error fetching dates:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/addDate/:id", async (req, res) => {
+  const id = req.params.id;
+  const {startDate, endDate} = req.body;
+  try{
+  const pack = await Package.findById({_id : id});
+
+  const packdate = new PackageDates({
+    package_id: id,
+    start_date: startDate,
+    end_date: endDate,
+    rem_book: pack.package_capacity,
+  });
+  console.log(packdate);
+  await packdate.save();
+
+    res.status(201).json(packdate);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 });
 
@@ -574,30 +596,67 @@ router.post("/deletePackage/:id", async (req, res) => {
   }
 });
 
+
+
+
 // COMMENT  //
 
 router.post("/addComment", async (req, res) => {
   try {
-    const { comment_desc, username, pack } = req.body;
+    const { newComment, userid, packid } = req.body;
+    
+    // Find the selected package by its ID
+    const selectedPackage = await Package.findOne({ _id: packid });
 
-    // Find the selected places by their IDs
-    const selectedUser = await User.find({ username });
+    if (!selectedPackage) {
+      return res.status(404).json({ error: "Package not found" });
+    }
 
-    // Create a new package with the selected places references
-    const newComment = new Comment({
-      comment_desc,
-      User: selectedUser,
+    // Create a new comment
+    const newCom = new Comment({
+      comment_desc: newComment,
+      user: userid, // Assuming `user` is the ID of the user who posted the comment
     });
 
-    await newComment.save();
+    // Save the comment
+    await newCom.save();
 
-    const selectedPack = await Package.find({ pack });
+    // Push the comment's ID into the package's comments array
+    selectedPackage.package_comment.push(newCom._id);
 
-    selectedPack.package_comment = newComment;
+    // Save the updated package
+    await selectedPackage.save();
 
-    res.status(201).json(newComment);
+    res.status(201).json(newCom);
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+
+router.get("/getComment/:id", async (req, res) => {
+  try {
+    const packid = req.params.id;
+
+    const package = await Package.findById(packid);
+
+    if (!package) {
+      return res.status(404).json({ error: 'Package not found' });
+    }
+
+    // Get the comment IDs associated with the package
+    const commentIds = package.package_comment;
+
+    // Fetch the comments using the IDs
+    const comments = await Comment.find({ _id: { $in: commentIds } });
+
+    // Extract comment descriptions
+    const commentDescs = comments.map((comment) => comment.comment_desc);
+    console.log(commentDescs);
+    res.json(commentDescs );
+  } catch (error) {
+    console.error('Error fetching comments:', error);
+    res.status(500).json({ error: 'An error occurred while fetching comments' });
   }
 });
 
