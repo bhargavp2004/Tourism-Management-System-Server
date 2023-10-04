@@ -32,7 +32,9 @@ const cors = require("cors");
 const multer = require("multer");
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
-
+const Razorpay = require('razorpay');
+const apis = require('dotenv').config();
+const crypto = require('crypto');
 // USER //
 
 router.post("/register", async (req, res) => {
@@ -69,10 +71,7 @@ router.post("/register", async (req, res) => {
         username: newUser.username,
       },
     };
-
-    // Sign the JWT token with the payload and secret key
     const token = jwt.sign(payload, secretKey, { expiresIn: "1h" });
-    // Send the token as a response
     console.log("Registration Successful!");
     res.cookie("token", token, { httpOnly: true });
     return res.status(200).json({ msg: "Registration Successful", token });
@@ -617,25 +616,31 @@ router.post("/deleteComment", async (req, res) => {
 });
 
 // BOOKING PACKAGE  //
-
 router.post("/bookings", async (req, res) => {
   try {
-    // Extract the booking data from the request body
     const bookingData = req.body;
-
-    // Create a new booking instance
     const newBooking = new Booking(bookingData);
 
-    // Save the new booking to the database
-    const savedBooking = await newBooking.save();
+    const amount_to_pay = bookingData.book_cost * 100;
+    var options = {
+      amount: amount_to_pay,
+      currency: "INR",
+      receipt: "order_rcptid_11"
+    };
 
-    // Respond with the saved booking data
+    instance.orders.create(options, function(err, order) {
+      if (err) {
+        console.error("Error creating Razorpay order:", err);
+        return res.status(500).json({ error: "Error creating Razorpay order" });
+      }
+      console.log(order);
+    });
+
+    const savedBooking = await newBooking.save();
     res.status(201).json(savedBooking);
   } catch (error) {
     console.error("Error creating booking:", error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while creating the booking" });
+    res.status(500).json({ error: "An error occurred while creating the booking" });
   }
 });
 
@@ -940,6 +945,69 @@ router.post("/getAnnouncement", async (req, res) => {
   const announcement = await Announcement.find({ Booking: selectedPack._id });
 
   res.render("Announcemet-details", { announcement });
+});
+
+router.post("/order", async (req, res) =>{
+
+  const bookingData = req.body;
+  console.log("Booking data : " + bookingData);
+
+  const amount_to_pay = bookingData.book_cost;
+  try{
+    const instance = new Razorpay({ key_id: process.env.API_KEY,
+       key_secret: process.env.API_SECRET_KEY});
+       const options = {
+        amount : amount_to_pay * 100,
+        currency : "INR",
+        receipt : crypto.randomBytes(10).toString("hex"),
+       };
+
+       instance.orders.create(options, async (error, order) => {
+        console.log("inside create order");
+        if(error)
+        {
+          console.log(error);
+          return res.status(500).json({"message" : "Something Went Wrong"});
+        }
+        console.log("passed from order");
+        console.log("Saved Booking from auth.js ", bookingData);
+        res.status(200).json({data : order, savedBooking : bookingData});
+       });
+  }
+  catch(error)
+  {
+    console.log(error);
+    return res.status(500).json({message : "Internal Server Error"});
+  }
+});
+
+router.post("/verify", async (req, res) => {
+  console.log("inside verify of auth");
+  try{
+    const { response, bookingData } = req.body;
+    const { razorpay_order_id, razorpay_payment_id,  razorpay_signature } = response;
+    
+    console.log("Booking data from verify " + bookingData.book_cost);
+    console.log("api key " , process.env.API_KEY);
+    const sign = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedsign = crypto.createHmac("sha256", process.env.API_SECRET_KEY)
+    .update(sign).digest("hex");
+    
+    console.log("signature ", razorpay_signature);
+    console.log("Expected sign ", expectedsign);
+
+    if(razorpay_signature === expectedsign) {
+      console.log("inside if");
+      const saveBooking = new Booking(bookingData);
+      saveBooking.save();
+      return res.status(200).json({message : "Payment verified successfully"});
+    }
+  }
+  catch(error)
+  {
+    console.log(error);
+    res.status(500).json({message : "Internal Server Error!"});
+  }
 });
 
 module.exports = router;
