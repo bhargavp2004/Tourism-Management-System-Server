@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
-const userSchema = require("../Models/userSchema"); // Import your User model
+const userSchema = require("../Models/userSchema");
 const User = mongoose.model("User", userSchema);
 const placeSchema = require("../Models/placeSchema");
 const Place = mongoose.model("Place", placeSchema);
@@ -218,6 +218,20 @@ router.post("/deleteUser", async (req, res) => {
     console.error("Error deleting document:", error);
   }
 });
+
+router.get("/getPackageName/:id", async (req, res) => {
+  console.log("inside getpackage");
+  console.log(req.params.id);
+  const identity = req.params.id;
+  const pn = await Package.findOne({ _id : identity });
+  if(pn != null)
+  {
+    const packName = pn.package_name;
+    return res.json({packageName: packName});
+  }
+  return res.json({message: "Package Not Found"});
+});
+
 
 router.post("/bookPackage", async (req, res) => {
   try {
@@ -445,9 +459,21 @@ router.get("/packages", async (req, res) => {
   res.json(package);
 });
 
+router.get("/getpackagebypackdate/:packdateid", async (req, res) => {
+  const packid = req.params.packdateid;
+  const packobj = await PackageDates.findOne({_id : packid});
+  console.log(packobj);
+  const package = await Package.findOne({_id : packobj.package_id});
+  console.log(package);
+  res.json(package);
+})
+
 router.get("/packages/:id", async (req, res) => {
+  console.log("inside packagees");
+  console.log(req.params.id);
   const id = req.params.id;
   const package = await Package.findOne({ _id: id });
+  console.log(package);
   res.json(package);
 });
 
