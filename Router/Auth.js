@@ -675,10 +675,21 @@ router.get("/getComment/:id", async (req, res) => {
     // Fetch the comments using the IDs
     const comments = await Comment.find({ _id: { $in: commentIds } });
 
-    // Extract comment descriptions
-    const commentDescs = comments.map((comment) => comment.comment_desc);
-    console.log(commentDescs);
-    res.json(commentDescs );
+    // Extract comment descriptions and usernames
+    const commentData = [];
+
+    for (const comment of comments) {
+      const user = await User.findById(comment.user);
+      const username = user ? user.username : 'Unknown';
+
+      commentData.push({
+        comment_desc: comment.comment_desc,
+        username: username,
+      });
+    }
+
+    console.log(commentData);
+    res.json(commentData);
   } catch (error) {
     console.error('Error fetching comments:', error);
     res.status(500).json({ error: 'An error occurred while fetching comments' });
