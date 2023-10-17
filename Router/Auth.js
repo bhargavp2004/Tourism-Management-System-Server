@@ -141,11 +141,11 @@ router.post("/login", async (req, res) => {
 });
 
 router.post("/about", (req, res) => {
-  const {token} = req.body;
+  const { token } = req.body;
   console.log(token);
   const decoded = jwt.verify(token, secretKey);
-  
-  return res.status(200).json({user : username});
+
+  return res.status(200).json({ user: username });
 })
 
 // Error handling middleware
@@ -206,13 +206,12 @@ router.get("/getPackageName/:id", async (req, res) => {
   console.log("inside getpackage");
   console.log(req.params.id);
   const identity = req.params.id;
-  const pn = await Package.findOne({ _id : identity });
-  if(pn != null)
-  {
+  const pn = await Package.findOne({ _id: identity });
+  if (pn != null) {
     const packName = pn.package_name;
-    return res.json({packageName: packName});
+    return res.json({ packageName: packName });
   }
-  return res.json({message: "Package Not Found"});
+  return res.json({ message: "Package Not Found" });
 });
 
 
@@ -290,22 +289,43 @@ router.post("/addPlace", upload.single("image"), async (req, res) => {
 });
 
 router.get("/fetchImage/:id", async (req, res) => {
+
   try {
     const id = req.params.id;
-    console.log(id);
-
     const place = await Place.findOne({ _id: id });
 
     if (!place || !place.image) {
       return res.status(404).send("Place or Image not found");
     }
 
-    res.contentType("image/jpeg"); // Set the content type based on your image format
-    res.send(place.image.buffer); // Assuming the image data is stored in a Buffer field
+    const imageBase64 = place.image.data.toString("base64"); // Convert Buffer to Base64 string
+    const imageResponse = {
+      image: imageBase64,
+      contentType: place.image.contentType,
+    };
+
+    res.json(imageResponse);
   } catch (error) {
     console.error("Error fetching image:", error);
     res.status(500).send("Internal Server Error");
   }
+
+  // try {
+  //   const id = req.params.id;
+  //   console.log(id);
+
+  //   const place = await Place.findOne({ _id: id });
+
+  //   if (!place || !place.image) {
+  //     return res.status(404).send("Place or Image not found");
+  //   }
+
+  //   res.contentType("image/jpeg"); 
+  //   res.send(place.image.buffer);
+  // } catch (error) {
+  //   console.error("Error fetching image:", error);
+  //   res.status(500).send("Internal Server Error");
+  // }
 });
 
 router.get("/placeDetails/:name", async (req, res) => {
@@ -325,9 +345,29 @@ router.get("/placeDetails/:name", async (req, res) => {
 });
 
 router.get("/places", async (req, res) => {
-  const places = await Place.find({});
+  try {
+    const places = await Place.find();
 
-  res.json(places);
+    const placesWithBase64Images = places.map(place => {
+      return {
+        place_id: place._id,
+        place_name: place.place_name,
+        place_desc: place.place_desc,
+        title: place.title,
+        image: place.image.data.toString('base64'),
+        contentType: place.image.contentType
+      };
+    });
+
+    res.json(placesWithBase64Images);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+
+  // const places = await Place.find({});
+
+  // res.json(places);
 });
 
 router.get("/places/:id", async (req, res) => {
@@ -347,8 +387,8 @@ router.put("/updatePlace/:id", upload.single("image"), async (req, res) => {
         place_name,
         place_desc,
         image: {
-          data: req.file.buffer, // Updated image data
-          contentType: req.file.mimetype, // Updated content type
+          data: req.file.buffer,
+          contentType: req.file.mimetype,
         },
       },
       { new: true }
@@ -367,19 +407,19 @@ router.put("/updatePlace/:id", upload.single("image"), async (req, res) => {
 
 router.post("/deletePlace/:id", async (req, res) => {
   const id = req.params.id;
-
+  console.log(id);
   try {
-    // Check if the guide exists
+
     const place = await Place.findById(id);
 
     if (!place) {
       return res.status(404).json({ message: "Place not found" });
     }
 
-    // Perform any additional checks here before deleting (e.g., if the guide is associated with any data)
+    console.log("inside deleteplace of backend");
 
-    // Delete the guide
     await Place.deleteOne({ _id: id });
+    return res.status(200).json({ message: "Successfully deleted" });
   } catch (error) {
     console.error("Error deleting Place:", error);
     res
@@ -400,13 +440,11 @@ router.post("/addPackage", async (req, res) => {
       package_capacity,
       package_place,
       package_guide,
-      dates, // Array of dates with start_date and end_date
+      start_date,
+      end_date
     } = req.body;
 
-    // Find the selected places by their IDs
     const selectedPlaces = await Place.find({ _id: { $in: package_place } });
-
-    // Create a new package with the selected places references
     const newPackage = new Package({
       package_name,
       package_overview,
@@ -419,17 +457,14 @@ router.post("/addPackage", async (req, res) => {
 
     await newPackage.save();
     const pack_id = newPackage._id;
-
-    // Create an array of PackageDates objects based on the input dates
-    const packageDates = dates.map((date) => ({
+    const packageDates =
+    {
       package_id: pack_id,
-      start_date: date.start_date,
-      end_date: date.end_date,
+      start_date: start_date,
+      end_date: end_date,
       rem_book: package_capacity,
-    }));
-
-    // Insert the PackageDates objects into the database
-    await PackageDates.insertMany(packageDates);
+    }
+    await PackageDates.create(packageDates); 
 
     res.status(201).json(newPackage);
   } catch (error) {
@@ -444,9 +479,9 @@ router.get("/packages", async (req, res) => {
 
 router.get("/getpackagebypackdate/:packdateid", async (req, res) => {
   const packid = req.params.packdateid;
-  const packobj = await PackageDates.findOne({_id : packid});
+  const packobj = await PackageDates.findOne({ _id: packid });
   console.log(packobj);
-  const package = await Package.findOne({_id : packobj.package_id});
+  const package = await Package.findOne({ _id: packobj.package_id });
   console.log(package);
   res.json(package);
 })
@@ -494,18 +529,18 @@ router.get("/getDates/:id", async (req, res) => {
 
 router.post("/addDate/:id", async (req, res) => {
   const id = req.params.id;
-  const {startDate, endDate} = req.body;
-  try{
-  const pack = await Package.findById({_id : id});
+  const { startDate, endDate } = req.body;
+  try {
+    const pack = await Package.findById({ _id: id });
 
-  const packdate = new PackageDates({
-    package_id: id,
-    start_date: startDate,
-    end_date: endDate,
-    rem_book: pack.package_capacity,
-  });
-  console.log(packdate);
-  await packdate.save();
+    const packdate = new PackageDates({
+      package_id: id,
+      start_date: startDate,
+      end_date: endDate,
+      rem_book: pack.package_capacity,
+    });
+    console.log(packdate);
+    await packdate.save();
 
     res.status(201).json(packdate);
   } catch (error) {
@@ -612,7 +647,7 @@ router.post("/deletePackage/:id", async (req, res) => {
 router.post("/addComment", async (req, res) => {
   try {
     const { newComment, userid, packid } = req.body;
-    
+
     // Find the selected package by its ID
     const selectedPackage = await Package.findOne({ _id: packid });
 
@@ -707,7 +742,7 @@ router.post("/bookings", async (req, res) => {
       receipt: "order_rcptid_11"
     };
 
-    instance.orders.create(options, function(err, order) {
+    instance.orders.create(options, function (err, order) {
       if (err) {
         console.error("Error creating Razorpay order:", err);
         return res.status(500).json({ error: "Error creating Razorpay order" });
@@ -751,8 +786,6 @@ router.get('/getcurrbook/:userid', async (req, res) => {
     const currentDate = new Date();
     const userId = req.params.userid;
 
-    // Assuming you have the necessary Mongoose models and schemas defined
-
     const bookings = await Booking.find({
       book_user: userId,
     }).populate({
@@ -762,7 +795,6 @@ router.get('/getcurrbook/:userid', async (req, res) => {
         end_date: { $gt: currentDate },
       },
     });
-    console.log("Hello");
     console.log(bookings);
     res.json(bookings);
   } catch (error) {
@@ -1026,66 +1058,65 @@ router.post("/getAnnouncement", async (req, res) => {
   res.render("Announcemet-details", { announcement });
 });
 
-router.post("/order", async (req, res) =>{
+router.post("/order", async (req, res) => {
 
   const bookingData = req.body;
   console.log("Booking data : " + bookingData);
 
   const amount_to_pay = bookingData.book_cost;
-  try{
-    const instance = new Razorpay({ key_id: process.env.API_KEY,
-       key_secret: process.env.API_SECRET_KEY});
-       const options = {
-        amount : amount_to_pay * 100,
-        currency : "INR",
-        receipt : crypto.randomBytes(10).toString("hex"),
-       };
+  try {
+    const instance = new Razorpay({
+      key_id: process.env.API_KEY,
+      key_secret: process.env.API_SECRET_KEY
+    });
+    const options = {
+      amount: amount_to_pay * 100,
+      currency: "INR",
+      receipt: crypto.randomBytes(10).toString("hex"),
+    };
 
-       instance.orders.create(options, async (error, order) => {
-        console.log("inside create order");
-        if(error)
-        {
-          console.log(error);
-          return res.status(500).json({"message" : "Something Went Wrong"});
-        }
-        console.log("passed from order");
-        console.log("Saved Booking from auth.js ", bookingData);
-        res.status(200).json({data : order, savedBooking : bookingData});
-       });
+    instance.orders.create(options, async (error, order) => {
+      console.log("inside create order");
+      if (error) {
+        console.log(error);
+        return res.status(500).json({ "message": "Something Went Wrong" });
+      }
+      console.log("passed from order");
+      console.log("Saved Booking from auth.js ", bookingData);
+      res.status(200).json({ data: order, savedBooking: bookingData });
+    });
   }
-  catch(error)
-  {
+  catch (error) {
     console.log(error);
-    return res.status(500).json({message : "Internal Server Error"});
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
 router.post("/verify", async (req, res) => {
   console.log("inside verify of auth");
-  try{
+  try {
     const { response, bookingData } = req.body;
-    const { razorpay_order_id, razorpay_payment_id,  razorpay_signature } = response;
-    
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = response;
+
     console.log("Booking data from verify " + bookingData.book_cost);
-    console.log("api key " , process.env.API_KEY);
+    console.log("api key ", process.env.API_KEY);
     const sign = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedsign = crypto.createHmac("sha256", process.env.API_SECRET_KEY)
-    .update(sign).digest("hex");
-    
+      .update(sign).digest("hex");
+
     console.log("signature ", razorpay_signature);
     console.log("Expected sign ", expectedsign);
 
-    if(razorpay_signature === expectedsign) {
+    if (razorpay_signature === expectedsign) {
       console.log("inside if");
       const saveBooking = new Booking(bookingData);
       saveBooking.save();
-      return res.status(200).json({message : "Payment verified successfully"});
+      return res.status(200).json({ message: "Payment verified successfully" });
     }
   }
-  catch(error)
-  {
+  catch (error) {
     console.log(error);
-    res.status(500).json({message : "Internal Server Error!"});
+    res.status(500).json({ message: "Internal Server Error!" });
   }
 });
 
