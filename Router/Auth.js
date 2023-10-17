@@ -38,15 +38,15 @@ const crypto = require('crypto');
 // USER //
 
 router.post("/register", async (req, res) => {
-  console.log("inside register");
+  
   const { firstname, lastname, email, username, password, mobilenumber } =
     req.body;
-  console.log("after destructuring");
+  
   // Check if a user with the same email or username already exists
   const existingUser = await User.findOne({ $or: [{ email }, { username }] });
-  console.log("after existing user");
+  
   const hashedPassword = await bcrypt.hash(password, saltRounds);
-  console.log("after hashing");
+  
   if (existingUser) {
     return res
       .status(400)
@@ -63,7 +63,7 @@ router.post("/register", async (req, res) => {
   });
 
   try {
-    console.log("Before");
+    
     await newUser.save();
     const payload = {
       user: {
@@ -72,11 +72,11 @@ router.post("/register", async (req, res) => {
       },
     };
     const token = jwt.sign(payload, secretKey, { expiresIn: "1h" });
-    console.log("Registration Successful!");
+    
     res.cookie("token", token, { httpOnly: true });
     return res.status(200).json({ msg: "Registration Successful", token });
   } catch (error) {
-    console.log("Registration Failed:", error);
+    
     return res.status(401).json({ error: "Registration Failed" });
   }
 });
@@ -88,9 +88,7 @@ router.post("/login", async (req, res) => {
     // Check if a user with the provided username exists
     const user = await User.findOne({ username: username });
     const admin = await Admin.findOne({ username: username });
-    console.log(username);
-    console.log(user);
-    console.log(admin);
+    
 
     if (!user && !admin) {
       return res.status(401).json({ error: "Incorrect Username or Password" });
@@ -108,12 +106,11 @@ router.post("/login", async (req, res) => {
         },
       };
       const token = jwt.sign(payload, secretKey, { expiresIn: "1h" });
-      console.log(token);
+      
       res.cookie("token", token, { httpOnly: true });
       return res.status(200).json({ msg: "Login Successful", token });
     } else {
-      console.log("Admin");
-      console.log(password);
+      
       const passwordMatch = await Admin.findOne({ password: password });
 
       if (!passwordMatch) {
@@ -129,20 +126,20 @@ router.post("/login", async (req, res) => {
       };
 
       const token = jwt.sign(payload, secretKey, { expiresIn: "1h" });
-      console.log(token);
+      
       res.cookie("token", token, { httpOnly: true });
-      console.log(passwordMatch);
+      
       return res.status(201).json({ msg: "Login Successful", token });
     }
   } catch (error) {
-    console.log("Login Failed:", error);
+    
     return res.status(401).json({ error: "Login Failed" });
   }
 });
 
 router.post("/about", (req, res) => {
   const { token } = req.body;
-  console.log(token);
+  
   const decoded = jwt.verify(token, secretKey);
 
   return res.status(200).json({ user: username });
@@ -156,15 +153,14 @@ router.use((err, req, res, next) => {
 
 router.put("/updateUser/:id", async (req, res) => {
   const newuser = req.body;
-  console.log("Update");
-  console.log(newuser);
+  
   const id = req.params.id;
 
   try {
     const existingUser = await User.findByIdAndUpdate(id, newuser, {
       new: true,
     });
-    console.log(existingUser);
+    
     if (!existingUser) {
       return res.status(404).json({ message: "Package not found" });
     }
@@ -196,15 +192,14 @@ router.post("/deleteUser", async (req, res) => {
     const result = await User.deleteOne({ _id: userid });
     await Comment.deleteMany({ user: userid });
     await Booking.deleteMany({ user: userid });
-    console.log(result.deletedCount, "document(s) deleted");
+
   } catch (error) {
     console.error("Error deleting document:", error);
   }
 });
 
 router.get("/getPackageName/:id", async (req, res) => {
-  console.log("inside getpackage");
-  console.log(req.params.id);
+  
   const identity = req.params.id;
   const pn = await Package.findOne({ _id: identity });
   if (pn != null) {
@@ -250,7 +245,7 @@ router.post("/bookPackage", async (req, res) => {
 // PLACE //
 
 router.post("/upload", upload.single("image"), async (req, res) => {
-  console.log(req.body.title);
+  
   try {
     const image = new Image({
       title: req.body.title,
@@ -312,7 +307,7 @@ router.get("/fetchImage/:id", async (req, res) => {
 
   // try {
   //   const id = req.params.id;
-  //   console.log(id);
+  //   
 
   //   const place = await Place.findOne({ _id: id });
 
@@ -336,7 +331,7 @@ router.get("/placeDetails/:name", async (req, res) => {
     if (!place) {
       return res.status(404).send("Place not found");
     }
-    console.log(place.image);
+    
     res.render("place-details", { place });
   } catch (error) {
     console.error("Error fetching place details:", error);
@@ -407,7 +402,6 @@ router.put("/updatePlace/:id", upload.single("image"), async (req, res) => {
 
 router.post("/deletePlace/:id", async (req, res) => {
   const id = req.params.id;
-  console.log(id);
   try {
 
     const place = await Place.findById(id);
@@ -416,7 +410,7 @@ router.post("/deletePlace/:id", async (req, res) => {
       return res.status(404).json({ message: "Place not found" });
     }
 
-    console.log("inside deleteplace of backend");
+    
 
     await Place.deleteOne({ _id: id });
     return res.status(200).json({ message: "Successfully deleted" });
@@ -480,18 +474,17 @@ router.get("/packages", async (req, res) => {
 router.get("/getpackagebypackdate/:packdateid", async (req, res) => {
   const packid = req.params.packdateid;
   const packobj = await PackageDates.findOne({ _id: packid });
-  console.log(packobj);
+  
   const package = await Package.findOne({ _id: packobj.package_id });
-  console.log(package);
+ 
   res.json(package);
 })
 
 router.get("/packages/:id", async (req, res) => {
-  console.log("inside packagees");
-  console.log(req.params.id);
+  
   const id = req.params.id;
   const package = await Package.findOne({ _id: id });
-  console.log(package);
+  
   res.json(package);
 });
 
@@ -539,7 +532,7 @@ router.post("/addDate/:id", async (req, res) => {
       end_date: endDate,
       rem_book: pack.package_capacity,
     });
-    console.log(packdate);
+    
     await packdate.save();
 
     res.status(201).json(packdate);
@@ -606,7 +599,7 @@ router.put("/updatepackdate/:id", async (req, res) => {
     const existingPackage = await PackageDates.findByIdAndUpdate(id, newobj, {
       new: true,
     });
-    console.log(existingPackage);
+    
     if (!existingPackage) {
       return res.status(404).json({ message: "Package not found" });
     }
@@ -620,7 +613,7 @@ router.put("/updatepackdate/:id", async (req, res) => {
 
 router.post("/deletePackage/:id", async (req, res) => {
   const id = req.params.id;
-  console.log(id);
+  
   try {
     const ask = await Booking.findOne({ book_pack: id });
     if (ask == null) {
@@ -693,20 +686,17 @@ router.get("/getComment/:id", async (req, res) => {
     // Fetch the comments using the IDs
     const comments = await Comment.find({ _id: { $in: commentIds } });
 
-    // Extract comment descriptions and usernames
-    const commentData = [];
+    // Use Promise.all to concurrently fetch usernames for comments
+    const commentData = await Promise.all(
+      comments.map(async (comment) => {
+        const user = await User.findById(comment.user);
+        return {
+          comment_desc: comment.comment_desc,
+          username: user ? user.username : "Unknown User",
+        };
+      })
+    );
 
-    for (const comment of comments) {
-      const user = await User.findById(comment.user);
-      const username = user ? user.username : 'Unknown';
-
-      commentData.push({
-        comment_desc: comment.comment_desc,
-        username: username,
-      });
-    }
-
-    console.log(commentData);
     res.json(commentData);
   } catch (error) {
     console.error('Error fetching comments:', error);
@@ -714,16 +704,18 @@ router.get("/getComment/:id", async (req, res) => {
   }
 });
 
+
+
 router.post("/deleteComment", async (req, res) => {
   const { comment } = req.body;
-  console.log(name);
+  
   try {
     const result = await Comment.deleteOne({ _id: comment });
     await Package.updateMany(
       { package_guide: guide },
       { $unset: { package_guide: 1 } }
     );
-    console.log(result.deletedCount, "document(s) deleted");
+    
   } catch (error) {
     console.error("Error deleting document:", error);
   }
@@ -747,7 +739,7 @@ router.post("/bookings", async (req, res) => {
         console.error("Error creating Razorpay order:", err);
         return res.status(500).json({ error: "Error creating Razorpay order" });
       }
-      console.log(order);
+      
     });
 
     const savedBooking = await newBooking.save();
@@ -762,7 +754,7 @@ router.post("/bookSelectedPackage", async (req, res) => {
   const package_name = req.body.package_name;
   const pack = await Package.findOne({ package_name: package_name });
 
-  console.log(pack);
+  
   return res.json({ message: `Selected ${package_name}` });
 });
 
@@ -795,7 +787,7 @@ router.get('/getcurrbook/:userid', async (req, res) => {
         end_date: { $gt: currentDate },
       },
     });
-    console.log(bookings);
+    
     res.json(bookings);
   } catch (error) {
     console.error(error);
@@ -808,10 +800,10 @@ router.get('/getcurrbook/:userid', async (req, res) => {
 
 router.post("/deleteBooking", async (req, res) => {
   const { user } = req.body;
-  console.log(user);
+  
   try {
     const result = await Booking.deleteOne({ _id: user });
-    console.log(result.deletedCount, "document(s) deleted");
+    
   } catch (error) {
     console.error("Error deleting document:", error);
   }
@@ -867,20 +859,20 @@ router.post("/updateAdmin", async (req, res) => {
   existingAdmin
     .save()
     .then((result) => {
-      console.log("Admin saved");
+      
     })
     .catch((err) => {
-      console.log("failed");
+      
     });
   return res.send(existingAdmin);
 });
 
 router.post("/deleteAdmin", async (req, res) => {
   const { admin } = req.body;
-  console.log(user);
+ 
   try {
     const result = await Admin.deleteOne({ _id: admin });
-    console.log(result.deletedCount, "document(s) deleted");
+    
   } catch (error) {
     console.error("Error deleting document:", error);
   }
@@ -915,10 +907,10 @@ router.post("/addGuide", async (req, res) => {
 
   try {
     const savedUser = await newGuide.save();
-    console.log("Registration Successful!");
+    
     return res.status(201).json({ msg: "Registration Successful" });
   } catch (error) {
-    console.log("Registration Failed:", error);
+    
     return res.status(500).json({ error: "Registration Failed" });
   }
 });
@@ -943,7 +935,7 @@ router.get("/guideUsernames", async (req, res) => {
 
 router.get("/guide/:id", async (req, res) => {
   const id = req.params.id;
-  console.log(id);
+ 
   const guide = await Guide.findOne({ _id: id });
   res.json(guide);
 });
@@ -1006,7 +998,7 @@ router.post("/deleteGuide/:id", async (req, res) => {
 
 // router.post('/deletePackage/:id', async (req, res) => {
 //   const id = req.params.id;
-//   console.log(id);
+//   
 //   try {
 //     const ask = await Booking.findOne({ book_pack: id });
 //     if (ask == null) {
@@ -1061,7 +1053,7 @@ router.post("/getAnnouncement", async (req, res) => {
 router.post("/order", async (req, res) => {
 
   const bookingData = req.body;
-  console.log("Booking data : " + bookingData);
+  
 
   const amount_to_pay = bookingData.book_cost;
   try {
@@ -1076,46 +1068,43 @@ router.post("/order", async (req, res) => {
     };
 
     instance.orders.create(options, async (error, order) => {
-      console.log("inside create order");
+      
       if (error) {
-        console.log(error);
+        
         return res.status(500).json({ "message": "Something Went Wrong" });
       }
-      console.log("passed from order");
-      console.log("Saved Booking from auth.js ", bookingData);
+      
       res.status(200).json({ data: order, savedBooking: bookingData });
     });
   }
   catch (error) {
-    console.log(error);
+    
     return res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
 router.post("/verify", async (req, res) => {
-  console.log("inside verify of auth");
+  
   try {
     const { response, bookingData } = req.body;
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = response;
 
-    console.log("Booking data from verify " + bookingData.book_cost);
-    console.log("api key ", process.env.API_KEY);
+   
     const sign = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedsign = crypto.createHmac("sha256", process.env.API_SECRET_KEY)
       .update(sign).digest("hex");
 
-    console.log("signature ", razorpay_signature);
-    console.log("Expected sign ", expectedsign);
+    
 
     if (razorpay_signature === expectedsign) {
-      console.log("inside if");
+      
       const saveBooking = new Booking(bookingData);
       saveBooking.save();
       return res.status(200).json({ message: "Payment verified successfully" });
     }
   }
   catch (error) {
-    console.log(error);
+    
     res.status(500).json({ message: "Internal Server Error!" });
   }
 });
