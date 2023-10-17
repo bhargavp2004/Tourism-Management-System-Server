@@ -140,23 +140,6 @@ router.post("/login", async (req, res) => {
   }
 });
 
-function verifyTokenFromSessionOrCookie(req, res, next) {
-  const token = req.session?.token || req.cookies?.token;
-  console.log("Inside Verification Function");
-  console.log(token);
-  if (!token) {
-    return res.status(401).json({ error: "Access denied. No token provided." });
-  }
-
-  try {
-    const decoded = jwt.verify(token, secretKey);
-    req.user = decoded.user;
-    next();
-  } catch (error) {
-    res.status(403).json({ error: "Token is not valid" });
-  }
-}
-
 router.post("/about", (req, res) => {
   const {token} = req.body;
   console.log(token);
