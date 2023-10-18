@@ -32,14 +32,16 @@ const Razorpay = require('razorpay');
 const apis = require('dotenv').config();
 const crypto = require('crypto');
 
+//User 
+
 router.post("/register", async (req, res) => {
-  
+
   const { firstname, lastname, email, username, password, mobilenumber } = req.body;
-  
+
   const existingUser = await User.findOne({ $or: [{ email }, { username }] });
-  
+
   const hashedPassword = await bcrypt.hash(password, saltRounds);
-  
+
   if (existingUser) {
     return res
       .status(400)
@@ -56,7 +58,7 @@ router.post("/register", async (req, res) => {
   });
 
   try {
-    
+
     await newUser.save();
     const payload = {
       user: {
@@ -65,11 +67,11 @@ router.post("/register", async (req, res) => {
       },
     };
     const token = jwt.sign(payload, secretKey, { expiresIn: "1h" });
-    
+
     res.cookie("token", token, { httpOnly: true });
     return res.status(200).json({ msg: "Registration Successful", token });
   } catch (error) {
-    
+
     return res.status(401).json({ error: "Registration Failed" });
   }
 });
@@ -80,7 +82,7 @@ router.post("/login", async (req, res) => {
   try {
     const user = await User.findOne({ username: username });
     const admin = await Admin.findOne({ username: username });
-    
+
 
     if (!user && !admin) {
       return res.status(401).json({ error: "Incorrect Username or Password" });
@@ -98,11 +100,11 @@ router.post("/login", async (req, res) => {
         },
       };
       const token = jwt.sign(payload, secretKey, { expiresIn: "1h" });
-      
+
       res.cookie("token", token, { httpOnly: true });
       return res.status(200).json({ msg: "Login Successful", token });
     } else {
-      
+
       const passwordMatch = await Admin.findOne({ password: password });
 
       if (!passwordMatch) {
@@ -118,20 +120,20 @@ router.post("/login", async (req, res) => {
       };
 
       const token = jwt.sign(payload, secretKey, { expiresIn: "1h" });
-      
+
       res.cookie("token", token, { httpOnly: true });
-      
+
       return res.status(201).json({ msg: "Login Successful", token });
     }
   } catch (error) {
-    
+
     return res.status(401).json({ error: "Login Failed" });
   }
 });
 
 router.post("/about", (req, res) => {
   const { token } = req.body;
-  
+
   const decoded = jwt.verify(token, secretKey);
 
   return res.status(200).json({ user: username });
@@ -145,14 +147,14 @@ router.use((err, req, res, next) => {
 
 router.put("/updateUser/:id", async (req, res) => {
   const newuser = req.body;
-  
+
   const id = req.params.id;
 
   try {
     const existingUser = await User.findByIdAndUpdate(id, newuser, {
       new: true,
     });
-    
+
     if (!existingUser) {
       return res.status(404).json({ message: "Package not found" });
     }
@@ -190,45 +192,6 @@ router.post("/deleteUser", async (req, res) => {
   }
 });
 
-router.get("/getPackageName/:id", async (req, res) => {
-  
-  const identity = req.params.id;
-  const pn = await Package.findOne({ _id: identity });
-  if (pn != null) {
-    const packName = pn.package_name;
-    return res.json({ packageName: packName });
-  }
-  return res.json({ message: "Package Not Found" });
-});
-
-
-router.post("/bookPackage", async (req, res) => {
-  try {
-    const {
-      package_name,
-      package_overview,
-      package_days,
-      package_price,
-      package_place,
-      package_guide,
-    } = req.body;
-    const selectedPlaces = await Place.find({ _id: { $in: package_place } });
-    const newPackage = new Package({
-      package_name,
-      package_overview,
-      package_days,
-      package_price,
-      package_place: selectedPlaces.map((place) => place._id),
-      package_guide,
-    });
-
-    await newPackage.save();
-
-    res.status(201).json(newPackage);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
 
 router.post("/addPlace", upload.single("image"), async (req, res) => {
   try {
@@ -287,7 +250,7 @@ router.get("/placeDetails/:name", async (req, res) => {
     if (!place) {
       return res.status(404).send("Place not found");
     }
-    
+
     res.render("place-details", { place });
   } catch (error) {
     console.error("Error fetching place details:", error);
@@ -363,7 +326,7 @@ router.post("/deletePlace/:id", async (req, res) => {
       return res.status(404).json({ message: "Place not found" });
     }
 
-    
+
 
     await Place.deleteOne({ _id: id });
     return res.status(200).json({ message: "Successfully deleted" });
@@ -376,6 +339,17 @@ router.post("/deletePlace/:id", async (req, res) => {
 });
 
 //  PACKAGE   //
+
+router.get("/getPackageName/:id", async (req, res) => {
+
+  const identity = req.params.id;
+  const pn = await Package.findOne({ _id: identity });
+  if (pn != null) {
+    const packName = pn.package_name;
+    return res.json({ packageName: packName });
+  }
+  return res.json({ message: "Package Not Found" });
+});
 
 router.post("/addPackage", async (req, res) => {
   try {
@@ -403,7 +377,7 @@ router.post("/addPackage", async (req, res) => {
       package_guide,
       img_url
     });
-    
+
     await newPackage.save();
     const pack_id = newPackage._id;
     const packageDates =
@@ -413,7 +387,7 @@ router.post("/addPackage", async (req, res) => {
       end_date: end_date,
       rem_book: package_capacity,
     }
-    await PackageDates.create(packageDates); 
+    await PackageDates.create(packageDates);
 
     res.status(201).json(newPackage);
   } catch (error) {
@@ -429,18 +403,46 @@ router.get("/packages", async (req, res) => {
 router.get("/getpackagebypackdate/:packdateid", async (req, res) => {
   const packid = req.params.packdateid;
   const packobj = await PackageDates.findOne({ _id: packid });
-  
+
   const package = await Package.findOne({ _id: packobj.package_id });
- 
+
   res.json(package);
 })
 
 router.get("/packages/:id", async (req, res) => {
-  
+
   const id = req.params.id;
   const package = await Package.findOne({ _id: id });
-  
+
   res.json(package);
+});
+
+router.post("/bookPackage", async (req, res) => {
+  try {
+    const {
+      package_name,
+      package_overview,
+      package_days,
+      package_price,
+      package_place,
+      package_guide,
+    } = req.body;
+    const selectedPlaces = await Place.find({ _id: { $in: package_place } });
+    const newPackage = new Package({
+      package_name,
+      package_overview,
+      package_days,
+      package_price,
+      package_place: selectedPlaces.map((place) => place._id),
+      package_guide,
+    });
+
+    await newPackage.save();
+
+    res.status(201).json(newPackage);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
 router.get("/getplaces/:id", async (req, res) => {
@@ -486,7 +488,7 @@ router.post("/addDate/:id", async (req, res) => {
       end_date: endDate,
       rem_book: pack.package_capacity,
     });
-    
+
     await packdate.save();
 
     res.status(201).json(packdate);
@@ -553,7 +555,7 @@ router.put("/updatepackdate/:id", async (req, res) => {
     const existingPackage = await PackageDates.findByIdAndUpdate(id, newobj, {
       new: true,
     });
-    
+
     if (!existingPackage) {
       return res.status(404).json({ message: "Package not found" });
     }
@@ -567,7 +569,7 @@ router.put("/updatepackdate/:id", async (req, res) => {
 
 router.post("/deletePackage/:id", async (req, res) => {
   const id = req.params.id;
-  
+
   try {
     const ask = await Booking.findOne({ book_pack: id });
     if (ask == null) {
@@ -601,7 +603,7 @@ router.post("/addComment", async (req, res) => {
     }
     const newCom = new Comment({
       comment_desc: newComment,
-      user: userid, 
+      user: userid,
     });
     await newCom.save();
 
@@ -648,14 +650,14 @@ router.get("/getComment/:id", async (req, res) => {
 
 router.post("/deleteComment", async (req, res) => {
   const { comment } = req.body;
-  
+
   try {
     const result = await Comment.deleteOne({ _id: comment });
     await Package.updateMany(
       { package_guide: guide },
       { $unset: { package_guide: 1 } }
     );
-    
+
   } catch (error) {
     console.error("Error deleting document:", error);
   }
@@ -679,7 +681,7 @@ router.post("/bookings", async (req, res) => {
         console.error("Error creating Razorpay order:", err);
         return res.status(500).json({ error: "Error creating Razorpay order" });
       }
-      
+
     });
 
     const savedBooking = await newBooking.save();
@@ -694,7 +696,7 @@ router.post("/bookSelectedPackage", async (req, res) => {
   const package_name = req.body.package_name;
   const pack = await Package.findOne({ package_name: package_name });
 
-  
+
   return res.json({ message: `Selected ${package_name}` });
 });
 
@@ -725,23 +727,19 @@ router.get('/getcurrbook/:userid', async (req, res) => {
     const filteredBookings = await Promise.all(
       bookings.map(async (book) => {
         const pack = await PackageDates.findById(book.book_pack);
-        if(pack.end_date > currentDate){
+        if (pack.end_date > currentDate) {
           return book;
         }
       })
     );
-    
-    res.json(filteredBookings || []); 
-      
+
+    res.json(filteredBookings || []);
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
-
-
-
 
 router.delete("/cancelBooking/:bookingId", async (req, res) => {
   try {
@@ -809,20 +807,20 @@ router.post("/updateAdmin", async (req, res) => {
   existingAdmin
     .save()
     .then((result) => {
-      
+
     })
     .catch((err) => {
-      
+
     });
   return res.send(existingAdmin);
 });
 
 router.post("/deleteAdmin", async (req, res) => {
   const { admin } = req.body;
- 
+
   try {
     const result = await Admin.deleteOne({ _id: admin });
-    
+
   } catch (error) {
     console.error("Error deleting document:", error);
   }
@@ -853,10 +851,10 @@ router.post("/addGuide", async (req, res) => {
 
   try {
     const savedUser = await newGuide.save();
-    
+
     return res.status(201).json({ msg: "Registration Successful" });
   } catch (error) {
-    
+
     return res.status(500).json({ error: "Registration Failed" });
   }
 });
@@ -878,7 +876,7 @@ router.get("/guideUsernames", async (req, res) => {
 
 router.get("/guide/:id", async (req, res) => {
   const id = req.params.id;
- 
+
   const guide = await Guide.findOne({ _id: id });
   res.json(guide);
 });
@@ -909,7 +907,7 @@ router.put("/updateGuide/:id", async (req, res) => {
       return res.status(404).json({ message: "Guide not found" });
     }
 
-    return res.json(existingGuide); 
+    return res.json(existingGuide);
   } catch (error) {
     console.error("Error updating Guide:", error);
     return res.status(500).json({ message: "Failed to update Guide" });
@@ -970,7 +968,7 @@ router.post("/getAnnouncement", async (req, res) => {
 router.post("/order", async (req, res) => {
 
   const bookingData = req.body;
-  
+
 
   const amount_to_pay = bookingData.book_cost;
   try {
@@ -985,43 +983,43 @@ router.post("/order", async (req, res) => {
     };
 
     instance.orders.create(options, async (error, order) => {
-      
+
       if (error) {
-        
+
         return res.status(500).json({ "message": "Something Went Wrong" });
       }
-      
+
       res.status(200).json({ data: order, savedBooking: bookingData });
     });
   }
   catch (error) {
-    
+
     return res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
 router.post("/verify", async (req, res) => {
-  
+
   try {
     const { response, bookingData } = req.body;
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = response;
 
-   
+
     const sign = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedsign = crypto.createHmac("sha256", process.env.API_SECRET_KEY)
       .update(sign).digest("hex");
 
-    
+
 
     if (razorpay_signature === expectedsign) {
-      
+
       const saveBooking = new Booking(bookingData);
       saveBooking.save();
       return res.status(200).json({ message: "Payment verified successfully" });
     }
   }
   catch (error) {
-    
+
     res.status(500).json({ message: "Internal Server Error!" });
   }
 });
