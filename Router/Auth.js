@@ -17,8 +17,7 @@ const announcementSchema = require("../Models/announcementSchema");
 const Announcement = mongoose.model("Announcement", announcementSchema);
 const adminSchema = require("../Models/adminSchema");
 const Admin = mongoose.model("Admin", adminSchema);
-const imageSchema = require("../Models/imageSchema");
-const Image = mongoose.model("Image", imageSchema);
+
 const bcrypt = require("bcrypt");
 const packageDateSchema = require("../Models/packageDates");
 const PackageDates = mongoose.model("PackageDates", packageDateSchema);
