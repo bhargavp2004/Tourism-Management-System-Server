@@ -780,15 +780,19 @@ router.get('/getcurrbook/:userid', async (req, res) => {
 
     const bookings = await Booking.find({
       book_user: userId,
-    }).populate({
-      path: 'book_pack',
-      model: 'PackageDateSchema',
-      match: {
-        end_date: { $gt: currentDate },
-      },
     });
+
+    const filteredBookings = await Promise.all(
+      bookings.map(async (book) => {
+        const pack = await PackageDates.findById(book.book_pack);
+        if(pack.end_date > currentDate){
+          return book;
+        }
+      })
+    );
     
-    res.json(bookings);
+    res.json(filteredBookings || []); 
+      
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -798,14 +802,22 @@ router.get('/getcurrbook/:userid', async (req, res) => {
 
 
 
-router.post("/deleteBooking", async (req, res) => {
-  const { user } = req.body;
-  
+
+router.delete("/cancelBooking/:bookingId", async (req, res) => {
   try {
-    const result = await Booking.deleteOne({ _id: user });
-    
+    const bookingId = req.params.bookingId;
+
+    // Assuming you have a Booking model, you can use Mongoose to find and remove the booking
+    const canceledBooking = await Booking.findByIdAndRemove(bookingId);
+
+    if (!canceledBooking) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+
+    res.status(200).json({ message: "Booking canceled successfully" });
   } catch (error) {
-    console.error("Error deleting document:", error);
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
