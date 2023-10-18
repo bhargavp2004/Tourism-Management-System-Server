@@ -17,8 +17,6 @@ const announcementSchema = require("../Models/announcementSchema");
 const Announcement = mongoose.model("Announcement", announcementSchema);
 const adminSchema = require("../Models/adminSchema");
 const Admin = mongoose.model("Admin", adminSchema);
-const imageSchema = require("../Models/imageSchema");
-const Image = mongoose.model("Image", imageSchema);
 const bcrypt = require("bcrypt");
 const packageDateSchema = require("../Models/packageDates");
 const PackageDates = mongoose.model("PackageDates", packageDateSchema);
@@ -26,8 +24,6 @@ const saltRounds = 10;
 const jwt = require("jsonwebtoken");
 const secretKey = "THISISMYSECURITYKEYWHICHICANTGIVEYOU";
 const bodyParser = require('body-parser');
-// Store files in memory as buffers
-// const upload = multer({ storage: storage, limits: { fileSize: 1024 * 1024 * 10 } });  //Configuring file size which can be uploaded
 const cors = require("cors");
 const multer = require("multer");
 const storage = multer.memoryStorage();
@@ -35,14 +31,11 @@ const upload = multer({ storage: storage });
 const Razorpay = require('razorpay');
 const apis = require('dotenv').config();
 const crypto = require('crypto');
-// USER //
 
 router.post("/register", async (req, res) => {
   
-  const { firstname, lastname, email, username, password, mobilenumber } =
-    req.body;
+  const { firstname, lastname, email, username, password, mobilenumber } = req.body;
   
-  // Check if a user with the same email or username already exists
   const existingUser = await User.findOne({ $or: [{ email }, { username }] });
   
   const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -85,7 +78,6 @@ router.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    // Check if a user with the provided username exists
     const user = await User.findOne({ username: username });
     const admin = await Admin.findOne({ username: username });
     
@@ -145,7 +137,7 @@ router.post("/about", (req, res) => {
   return res.status(200).json({ user: username });
 })
 
-// Error handling middleware
+
 router.use((err, req, res, next) => {
   console.error("Error:", err);
   res.status(500).json({ error: "Internal Server Error" });
@@ -164,7 +156,7 @@ router.put("/updateUser/:id", async (req, res) => {
     if (!existingUser) {
       return res.status(404).json({ message: "Package not found" });
     }
-    return res.json(existingUser); // Send the updated package data in response
+    return res.json(existingUser);
   } catch (error) {
     console.error("Error updating user:", error);
     return res.status(500).json({ message: "Failed to update user" });
@@ -220,11 +212,7 @@ router.post("/bookPackage", async (req, res) => {
       package_place,
       package_guide,
     } = req.body;
-
-    // Find the selected places by their IDs
     const selectedPlaces = await Place.find({ _id: { $in: package_place } });
-
-    // Create a new package with the selected places references
     const newPackage = new Package({
       package_name,
       package_overview,
@@ -239,22 +227,6 @@ router.post("/bookPackage", async (req, res) => {
     res.status(201).json(newPackage);
   } catch (error) {
     res.status(400).json({ error: error.message });
-  }
-});
-
-// PLACE //
-
-router.post("/upload", upload.single("image"), async (req, res) => {
-  
-  try {
-    const image = new Image({
-      title: req.body.title,
-      image: req.file.buffer,
-    });
-    await image.save();
-    res.status(201).send("Image uploaded successfully");
-  } catch (error) {
-    res.status(500).send("Error uploading image");
   }
 });
 
@@ -293,7 +265,7 @@ router.get("/fetchImage/:id", async (req, res) => {
       return res.status(404).send("Place or Image not found");
     }
 
-    const imageBase64 = place.image.data.toString("base64"); // Convert Buffer to Base64 string
+    const imageBase64 = place.image.data.toString("base64");
     const imageResponse = {
       image: imageBase64,
       contentType: place.image.contentType,
@@ -305,22 +277,6 @@ router.get("/fetchImage/:id", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 
-  // try {
-  //   const id = req.params.id;
-  //   
-
-  //   const place = await Place.findOne({ _id: id });
-
-  //   if (!place || !place.image) {
-  //     return res.status(404).send("Place or Image not found");
-  //   }
-
-  //   res.contentType("image/jpeg"); 
-  //   res.send(place.image.buffer);
-  // } catch (error) {
-  //   console.error("Error fetching image:", error);
-  //   res.status(500).send("Internal Server Error");
-  // }
 });
 
 router.get("/placeDetails/:name", async (req, res) => {
