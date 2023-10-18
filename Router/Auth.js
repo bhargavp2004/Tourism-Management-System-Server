@@ -17,8 +17,6 @@ const announcementSchema = require("../Models/announcementSchema");
 const Announcement = mongoose.model("Announcement", announcementSchema);
 const adminSchema = require("../Models/adminSchema");
 const Admin = mongoose.model("Admin", adminSchema);
-const imageSchema = require("../Models/imageSchema");
-const Image = mongoose.model("Image", imageSchema);
 const bcrypt = require("bcrypt");
 const packageDateSchema = require("../Models/packageDates");
 const PackageDates = mongoose.model("PackageDates", packageDateSchema);
@@ -455,7 +453,6 @@ router.get("/getplaces/:id", async (req, res) => {
       return res.status(404).json({ message: "Package not found" });
     }
 
-    // Extract associated places from the package document
     const associatedPlaces = package.package_place;
 
     res.json(associatedPlaces);
@@ -541,7 +538,7 @@ router.put("/updatePackage/:id", async (req, res) => {
       return res.status(404).json({ message: "Package not found" });
     }
 
-    return res.json(existingPackage); // Send the updated package data in response
+    return res.json(existingPackage);
   } catch (error) {
     console.error("Error updating package:", error);
     return res.status(500).json({ message: "Failed to update package" });
@@ -561,7 +558,7 @@ router.put("/updatepackdate/:id", async (req, res) => {
       return res.status(404).json({ message: "Package not found" });
     }
 
-    return res.json(existingPackage); // Send the updated package data in response
+    return res.json(existingPackage);
   } catch (error) {
     console.error("Error updating package:", error);
     return res.status(500).json({ message: "Failed to update package" });
@@ -597,27 +594,18 @@ router.post("/deletePackage/:id", async (req, res) => {
 router.post("/addComment", async (req, res) => {
   try {
     const { newComment, userid, packid } = req.body;
-
-    // Find the selected package by its ID
     const selectedPackage = await Package.findOne({ _id: packid });
 
     if (!selectedPackage) {
       return res.status(404).json({ error: "Package not found" });
     }
-
-    // Create a new comment
     const newCom = new Comment({
       comment_desc: newComment,
-      user: userid, // Assuming `user` is the ID of the user who posted the comment
+      user: userid, 
     });
-
-    // Save the comment
     await newCom.save();
 
-    // Push the comment's ID into the package's comments array
     selectedPackage.package_comment.push(newCom._id);
-
-    // Save the updated package
     await selectedPackage.save();
 
     res.status(201).json(newCom);
@@ -637,13 +625,8 @@ router.get("/getComment/:id", async (req, res) => {
       return res.status(404).json({ error: 'Package not found' });
     }
 
-    // Get the comment IDs associated with the package
     const commentIds = package.package_comment;
-
-    // Fetch the comments using the IDs
     const comments = await Comment.find({ _id: { $in: commentIds } });
-
-    // Use Promise.all to concurrently fetch usernames for comments
     const commentData = await Promise.all(
       comments.map(async (comment) => {
         const user = await User.findById(comment.user);
@@ -763,8 +746,6 @@ router.get('/getcurrbook/:userid', async (req, res) => {
 router.delete("/cancelBooking/:bookingId", async (req, res) => {
   try {
     const bookingId = req.params.bookingId;
-
-    // Assuming you have a Booking model, you can use Mongoose to find and remove the booking
     const canceledBooking = await Booking.findByIdAndRemove(bookingId);
 
     if (!canceledBooking) {
@@ -852,8 +833,6 @@ router.post("/deleteAdmin", async (req, res) => {
 router.post("/addGuide", async (req, res) => {
   const { firstname, lastname, email, username, password, mobilenumber } =
     req.body;
-
-  // Check if a user with the same email or username already exists
   const existingGuide = await Guide.findOne({ $or: [{ email }, { username }] });
 
   const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -863,8 +842,6 @@ router.post("/addGuide", async (req, res) => {
       .status(400)
       .json({ error: "Guide with the same email or username already exists" });
   }
-
-  // If user doesn't exist, create a new user and save
   const newGuide = new Guide({
     firstname,
     lastname,
@@ -886,10 +863,7 @@ router.post("/addGuide", async (req, res) => {
 
 router.get("/guideUsernames", async (req, res) => {
   try {
-    // Find all guides and project only the 'username' field
     const guides = await Guide.find({}, "username");
-
-    // Create an object with guide IDs as keys and usernames as values
     const guideUsernames = {};
     guides.forEach((guide) => {
       guideUsernames[guide._id.toString()] = guide.username;
@@ -935,7 +909,7 @@ router.put("/updateGuide/:id", async (req, res) => {
       return res.status(404).json({ message: "Guide not found" });
     }
 
-    return res.json(existingGuide); // Send the updated package data in response
+    return res.json(existingGuide); 
   } catch (error) {
     console.error("Error updating Guide:", error);
     return res.status(500).json({ message: "Failed to update Guide" });
@@ -946,16 +920,12 @@ router.post("/deleteGuide/:id", async (req, res) => {
   const id = req.params.id;
 
   try {
-    // Check if the guide exists
     const guide = await Guide.findById(id);
 
     if (!guide) {
       return res.status(404).json({ message: "Guide not found" });
     }
 
-    // Perform any additional checks here before deleting (e.g., if the guide is associated with any data)
-
-    // Delete the guide
     await Guide.deleteOne({ _id: id });
   } catch (error) {
     console.error("Error deleting Guide:", error);
@@ -965,35 +935,13 @@ router.post("/deleteGuide/:id", async (req, res) => {
   }
 });
 
-// router.post('/deletePackage/:id', async (req, res) => {
-//   const id = req.params.id;
-//   
-//   try {
-//     const ask = await Booking.findOne({ book_pack: id });
-//     if (ask == null) {
-//       const result = await Package.deleteOne({ _id: id });
-//       return res.status(200).json({ message: 'Package deleted' });
-//     } else {
-//       if (ask !== null) {
-//         return res.status(400).json({ message: 'Package is booked by someone' });
-//       }
-//     }
-//   } catch (error) {
-//     console.error('Error deleting document:', error);
-//     res.status(500).json({ message: 'Internal server error' });
-//   }
-// });
-
 // Announcement //
 
 router.post("/addAnnouncement", async (req, res) => {
   try {
     const { announcement_desc, bpack } = req.body;
-
-    // Find the selected places by their IDs
     const selectedPack = await Package.find({ bpack });
 
-    // Create a new package with the selected places references
     const newComment = new Comment({
       announcement_desc,
       Booking: selectedPack,
