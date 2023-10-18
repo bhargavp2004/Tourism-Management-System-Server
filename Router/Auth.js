@@ -434,7 +434,8 @@ router.post("/addPackage", async (req, res) => {
       package_place,
       package_guide,
       start_date,
-      end_date
+      end_date,
+      img_url
     } = req.body;
 
     const selectedPlaces = await Place.find({ _id: { $in: package_place } });
@@ -446,8 +447,9 @@ router.post("/addPackage", async (req, res) => {
       package_capacity,
       package_place: selectedPlaces.map((place) => place._id),
       package_guide,
+      img_url
     });
-
+    
     await newPackage.save();
     const pack_id = newPackage._id;
     const packageDates =
