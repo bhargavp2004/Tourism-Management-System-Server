@@ -24,7 +24,8 @@ const packageSchema = new schema({
    package_comment:[{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Comment',
-   }]    
+   }],
+   img_url: String    
 });
 
 

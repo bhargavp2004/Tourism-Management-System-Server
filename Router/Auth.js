@@ -17,6 +17,8 @@ const announcementSchema = require("../Models/announcementSchema");
 const Announcement = mongoose.model("Announcement", announcementSchema);
 const adminSchema = require("../Models/adminSchema");
 const Admin = mongoose.model("Admin", adminSchema);
+const imageSchema = require("../Models/imageSchema");
+const Image = mongoose.model("Image", imageSchema);
 const bcrypt = require("bcrypt");
 const packageDateSchema = require("../Models/packageDates");
 const PackageDates = mongoose.model("PackageDates", packageDateSchema);
@@ -316,9 +318,6 @@ router.get("/places", async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 
-  // const places = await Place.find({});
-
-  // res.json(places);
 });
 
 router.get("/places/:id", async (req, res) => {
@@ -391,7 +390,8 @@ router.post("/addPackage", async (req, res) => {
       package_place,
       package_guide,
       start_date,
-      end_date
+      end_date,
+      img_url
     } = req.body;
 
     const selectedPlaces = await Place.find({ _id: { $in: package_place } });
@@ -403,8 +403,9 @@ router.post("/addPackage", async (req, res) => {
       package_capacity,
       package_place: selectedPlaces.map((place) => place._id),
       package_guide,
+      img_url
     });
-
+    
     await newPackage.save();
     const pack_id = newPackage._id;
     const packageDates =
