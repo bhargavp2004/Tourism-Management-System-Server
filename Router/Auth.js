@@ -27,7 +27,10 @@ const bodyParser = require('body-parser');
 const cors = require("cors");
 const multer = require("multer");
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const upload = multer({ storage: storage,
+  limits: {
+    fileSize: 1024 * 1024 * 5, 
+  },});
 const Razorpay = require('razorpay');
 const apis = require('dotenv').config();
 const crypto = require('crypto');
