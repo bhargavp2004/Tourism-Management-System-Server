@@ -520,6 +520,8 @@ router.put("/updatePackage/:id", async (req, res) => {
     package_overview,
     package_days,
     package_price,
+    package_capacity,
+    img_url,
     package_place,
     package_guide,
   } = req.body;
@@ -533,6 +535,8 @@ router.put("/updatePackage/:id", async (req, res) => {
         package_overview,
         package_days,
         package_price,
+        package_capacity,
+        img_url,
         package_place,
         package_guide,
       },
