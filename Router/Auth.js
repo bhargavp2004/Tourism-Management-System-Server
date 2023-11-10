@@ -290,34 +290,34 @@ router.get("/places/:id", async (req, res) => {
   res.json(place);
 });
 
-router.put("/updatePlace/:id", upload.single("image"), async (req, res) => {
-  const { place_name, place_desc } = req.body;
-  const id = req.params.id;
-
+router.put('/updatePlace/:id', upload.single('image'), async (req, res) => {
   try {
-    const existingPlace = await Place.findByIdAndUpdate(
-      id,
-      {
-        place_name,
-        place_desc,
-        image: {
-          data: req.file.buffer,
-          contentType: req.file.mimetype,
-        },
+    const id = req.params.id;
+    const { place_name, place_desc } = req.body;
+    const image = req.file; // Uploaded image
+
+    // Create an object to store in the database
+    const placeData = {
+      place_name,
+      place_desc,
+      image: {
+        data: image.buffer,
+        contentType: image.mimetype,
       },
-      { new: true }
-    );
+    };
 
-    if (!existingPlace) {
-      return res.status(404).json({ message: "Place not found" });
-    }
+    // Update the place by ID
+    const updatedPlace = await Places.findByIdAndUpdate(id, placeData, {
+      new: true,
+    });
 
-    return res.json(existingPlace);
+    res.json(updatedPlace);
   } catch (error) {
-    console.error("Error updating place:", error);
-    return res.status(500).json({ message: "Failed to update place" });
+    console.log(error.message);
+    res.status(500).json({ error: error.message });
   }
 });
+
 
 router.post("/deletePlace/:id", async (req, res) => {
   const id = req.params.id;
